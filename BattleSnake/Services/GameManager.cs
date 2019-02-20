@@ -74,9 +74,20 @@ namespace BattleSnake.Services
         private readonly MapType[,] walkMap;
         private readonly double[,] scoreMap;
 
-        private const int BoundScore = 5;
+        private const double MapScore = 200.0d;
+        private const int BoundScore = -20;
+
+        private int SpaceScore = 5;
+        private int SpaceScale = 2;
+
+        private int FoodScore = 18;
+        private int FoodScale = 5;
+
+        private int SnakeScore = -9;
+        private int SnakeScale = 3;
 
         private StartRequestCoords head;
+        private int health;
 
         public Game(StartRequest startRequest)
         {
@@ -99,7 +110,7 @@ namespace BattleSnake.Services
                 for (int j = 0; j < height; j++)
                 {
                     walkMap[i, j] = MapType.Space;
-                    scoreMap[i, j] = 100.0d;
+                    scoreMap[i, j] = MapScore;
                 }
             }
         }
@@ -126,10 +137,17 @@ namespace BattleSnake.Services
         private void PutPlayer(StartRequestSnake player)
         {
             head = player.body[0];
+            health = player.health;
 
             foreach (var body in player.body)
             {
                 walkMap[body.x, body.y] = MapType.Snake;
+            }
+
+            if (health < 60)
+            {
+                FoodScore = 27;
+                FoodScale = 7;
             }
         }
 
@@ -139,12 +157,12 @@ namespace BattleSnake.Services
             PutFoods(startRequest.board.food);
             PutSnakes(startRequest.board.snakes);
             PutPlayer(startRequest.you);
-            CalculateMap();
+            CalculateScoreMap();
 
-            return GetDirection();
+            return MoveStep();
         }
 
-        private void CalculateMap()
+        private void CalculateScoreMap()
         {
             for (int x = 0; x < width; x++)
             {
@@ -158,24 +176,14 @@ namespace BattleSnake.Services
 
         private void CalculateBoundScore(int x, int y)
         {
-            if (y + 1 >= height) // up
+            if (y == 0 || y == height)
             {
-                scoreMap[x, y] -= BoundScore;
+                scoreMap[x, y] += BoundScore;
             }
 
-            if (y - 1 < 0) // down
+            if (x == 0 || x == width)
             {
-                scoreMap[x, y] -= BoundScore;
-            }
-
-            if (x - 1 < 0) // left
-            {
-                scoreMap[x, y] -= BoundScore;
-            }
-
-            if (x + 1 >= width) // right
-            {
-                scoreMap[x, y] -= BoundScore;
+                scoreMap[x, y] += BoundScore;
             }
         }
 
@@ -184,12 +192,14 @@ namespace BattleSnake.Services
             switch (walkMap[x, y])
             {
                 case MapType.Space:
+                    ApplyScoreMask(x, y, SpaceScore, SpaceScale);
                     break;
                 case MapType.Food:
-                    ApplyScoreMask(x, y, 5, 4);
+                    ApplyScoreMask(x, y, FoodScore, FoodScale);
                     break;
                 case MapType.Snake:
-                    ApplyScoreMask(x, y, -3, 2);
+                    ApplyScoreMask(x, y, SnakeScore, SnakeScale);
+                    scoreMap[x, y] -= 20;
                     break;
                 default:
                     break;
@@ -198,33 +208,37 @@ namespace BattleSnake.Services
 
         private void ApplyScoreMask(int x, int y, int score, int range)
         {
-            int up = Math.Min(y + range, height - 1);
-            int down = Math.Max(y - range, 0);
+            int up = Math.Max(y - range, 0);
+            int down = Math.Min(y + range, height - 1);
             int left = Math.Max(x - range, 0);
             int right = Math.Min(x + range, width - 1);
 
             for (int i = left; i <= right; i++)
             {
-                for (int j = down; j <= up; j++)
+                for (int j = up; j <= down; j++)
                 {
                     double distance = Math.Sqrt((i - x) * (i - x) + (j - y) * (j - y));
-                    scoreMap[i, j] += score * (range - distance);
+
+                    if (distance <= range)
+                    {
+                        scoreMap[i, j] += score * (1 - distance / range);
+                    }
                 }
             }
         }
 
-        private string GetDirection()
+        private string MoveStep()
         {
             double[] score = { 0.0d, 0.0d, 0.0d, 0.0d };
 
-            if (head.y + 1 < height) // up
+            if (head.y - 1 >= 0) // up
             {
-                score[0] = scoreMap[head.x, head.y + 1];
+                score[0] = scoreMap[head.x, head.y - 1];
             }
 
-            if (head.y - 1 >= 0) // down
+            if (head.y + 1 < height) // down
             {
-                score[1] = scoreMap[head.x, head.y - 1];
+                score[1] = scoreMap[head.x, head.y + 1];
             }
 
             if (head.x - 1 >= 0) // left

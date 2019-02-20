@@ -8,5 +8,7 @@ namespace BattleSnake.Models
     public class StartResponse
     {
         public string color;
+        public string headType;
+        public string tailType;
     }
 }

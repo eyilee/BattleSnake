@@ -23,7 +23,14 @@ namespace BattleSnake.Controllers
                 return BadRequest();
             }
 
-            return Ok(new StartResponse { color = "#66ccff" });
+            StartResponse response = new StartResponse
+            {
+                color = "#66ccff",
+                headType = "bendr",
+                tailType = "pixel"
+            };
+
+            return Ok(response);
         }
     }
 }
