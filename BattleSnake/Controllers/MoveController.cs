@@ -2,7 +2,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using BattleSnake.Models;
+using BattleSnake.Services;
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
 
 namespace BattleSnake.Controllers
 {
@@ -12,10 +15,17 @@ namespace BattleSnake.Controllers
     {
         // POST api/move
         [HttpPost]
-        public IActionResult Post([FromBody] string value)
+        public IActionResult Post([FromBody] StartRequest startRequest)
         {
-            string[] directions = { "up", "down", "left", "right" };
-            return new OkObjectResult(new { });
+            Game game = GameManager.Instance.GetGame(startRequest);
+            if (game == null)
+            {
+                return BadRequest();
+            }
+
+            string move = game.NextMove(startRequest);
+
+            return Ok(new MoveResponse { move = move });
         }
     }
 }

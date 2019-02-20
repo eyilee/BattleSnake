@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using BattleSnake.Models;
+using BattleSnake.Services;
 
 namespace BattleSnake.Controllers
 {
@@ -15,11 +16,14 @@ namespace BattleSnake.Controllers
     {
         // POST api/start
         [HttpPost]
-        public IActionResult Post([FromBody] string value)
+        public IActionResult Post([FromBody] StartRequest startRequest)
         {
-            StartRequest startRequest = JsonConvert.DeserializeObject<StartRequest>(value);
-            //return new OkObjectResult();
-            return Ok();
+            if (GameManager.Instance.CreateGame(startRequest) == false)
+            {
+                return BadRequest();
+            }
+
+            return Ok(new StartResponse { color = "#66ccff" });
         }
     }
 }

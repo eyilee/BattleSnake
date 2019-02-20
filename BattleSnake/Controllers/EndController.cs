@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using BattleSnake.Models;
+using BattleSnake.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,10 +13,15 @@ namespace BattleSnake.Controllers
     [ApiController]
     public class EndController : ControllerBase
     {
-        // POST api/start
+        // POST api/end
         [HttpPost]
-        public IActionResult Post([FromBody] string value)
+        public IActionResult Post([FromBody] StartRequest startRequest)
         {
+            if (GameManager.Instance.RemoveGame(startRequest) == false)
+            {
+                return BadRequest();
+            }
+
             return Ok();
         }
     }
