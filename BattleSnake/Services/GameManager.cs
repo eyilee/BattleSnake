@@ -66,7 +66,8 @@ namespace BattleSnake.Services
         {
             Space,
             Food,
-            Snake
+            Snake,
+            Head
         }
 
         private readonly string[] Directions = { "up", "down", "left", "right" };
@@ -75,16 +76,19 @@ namespace BattleSnake.Services
         private readonly double[,] scoreMap;
 
         private const double MapScore = 200.0d;
-        private const int BoundScore = -20;
+        private const int BoundScore = -9;
 
         private int SpaceScore = 3;
-        private int SpaceScale = 4;
+        private int SpaceScale = 5;
 
         private int FoodScore = 18;
-        private int FoodScale = 4;
+        private int FoodScale = 3;
 
         private int SnakeScore = -12;
-        private int SnakeScale = 2;
+        private int SnakeScale = 3;
+
+        private int HeadScore = -18;
+        private int HeadScale = 1;
 
         private StartRequestCoords head;
         private int health;
@@ -131,6 +135,7 @@ namespace BattleSnake.Services
                 {
                     walkMap[body.x, body.y] = MapType.Snake;
                 }
+                walkMap[snake.body[0].x, snake.body[0].y] = MapType.Head;
             }
         }
 
@@ -205,6 +210,9 @@ namespace BattleSnake.Services
                 case MapType.Snake:
                     ApplyScoreMask(x, y, SnakeScore, SnakeScale);
                     scoreMap[x, y] -= 20;
+                    break;
+                case MapType.Head:
+                    ApplyScoreMask(x, y, HeadScore, HeadScale);
                     break;
                 default:
                     break;
