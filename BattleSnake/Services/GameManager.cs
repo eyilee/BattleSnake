@@ -77,14 +77,14 @@ namespace BattleSnake.Services
         private const double MapScore = 200.0d;
         private const int BoundScore = -20;
 
-        private int SpaceScore = 5;
-        private int SpaceScale = 2;
+        private int SpaceScore = 3;
+        private int SpaceScale = 4;
 
         private int FoodScore = 18;
-        private int FoodScale = 5;
+        private int FoodScale = 4;
 
-        private int SnakeScore = -9;
-        private int SnakeScale = 3;
+        private int SnakeScore = -12;
+        private int SnakeScale = 2;
 
         private StartRequestCoords head;
         private int health;
@@ -146,8 +146,13 @@ namespace BattleSnake.Services
 
             if (health < 60)
             {
-                FoodScore = 27;
-                FoodScale = 7;
+                FoodScore = 36;
+                FoodScale = 6;
+            }
+            else if (health < 30)
+            {
+                FoodScore = 54;
+                FoodScale = 8;
             }
         }
 
