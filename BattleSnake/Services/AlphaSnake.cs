@@ -31,15 +31,15 @@ namespace BattleSnake.Services
         private const int UnWalkableScore = -100;
 
         private int SpaceScore = 3;
-        private int SpaceScale = 5;
+        private int SpaceScale = 4;
 
         private int FoodScore;
         private int FoodScale;
 
-        private int SnakeScore = -12;
-        private int SnakeScale = 3;
+        private int SnakeScore = -9;
+        private int SnakeScale = 2;
 
-        private int HeadScore = -36;
+        private int HeadScore = -64;
         private int HeadScale = 1;
 
         private int WeakHeadScore = 18;
@@ -113,7 +113,7 @@ namespace BattleSnake.Services
                     walkMap[body.x, body.y] = MapType.Snake;
                 }
 
-                if (size < snake.body.Capacity)
+                if (size <= snake.body.Capacity)
                 {
                     walkMap[snake.body[0].x, snake.body[0].y] = MapType.Head;
                 }
