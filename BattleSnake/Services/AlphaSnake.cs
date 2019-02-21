@@ -27,22 +27,24 @@ namespace BattleSnake.Services
         private double[,] scoreMap;
 
         private const int MapScore = 0;
-        private const int BoundScore = -6;
         private const int UnWalkableScore = -100;
 
+        private int BoundScore = -3;
+        private int BoundScale = 1;
+
         private int SpaceScore = 3;
-        private int SpaceScale = 4;
+        private int SpaceScale = 3;
 
         private int FoodScore;
         private int FoodScale;
 
-        private int SnakeScore = -9;
-        private int SnakeScale = 2;
+        private int SnakeScore = -5;
+        private int SnakeScale = 3;
 
-        private int HeadScore = -64;
-        private int HeadScale = 1;
+        private int HeadScore = -48;
+        private int HeadScale = 2;
 
-        private int WeakHeadScore = 18;
+        private int WeakHeadScore = 24;
         private int WeakHeadScale = 1;
 
         private Coords head;
@@ -161,12 +163,12 @@ namespace BattleSnake.Services
         {
             if (y == 0 || y == height)
             {
-                scoreMap[x, y] += BoundScore;
+                ApplyScoreMask(x, y, BoundScore, BoundScale);
             }
 
             if (x == 0 || x == width)
             {
-                scoreMap[x, y] += BoundScore;
+                ApplyScoreMask(x, y, BoundScore, BoundScale);
             }
         }
 
@@ -182,15 +184,15 @@ namespace BattleSnake.Services
                     break;
                 case MapType.Snake:
                     ApplyScoreMask(x, y, SnakeScore, SnakeScale);
-                    ApplyUnWalkableScore(x, y, UnWalkableScore);
+                    ApplyUnWalkableScore(x, y);
                     break;
                 case MapType.Head:
                     ApplyScoreMask(x, y, HeadScore, HeadScale);
-                    ApplyUnWalkableScore(x, y, UnWalkableScore);
+                    ApplyUnWalkableScore(x, y);
                     break;
                 case MapType.WeakHead:
                     ApplyScoreMask(x, y, WeakHeadScore, WeakHeadScale);
-                    ApplyUnWalkableScore(x, y, UnWalkableScore);
+                    ApplyUnWalkableScore(x, y);
                     break;
                 default:
                     break;
@@ -218,9 +220,9 @@ namespace BattleSnake.Services
             }
         }
 
-        private void ApplyUnWalkableScore(int x, int y, int score)
+        private void ApplyUnWalkableScore(int x, int y)
         {
-            scoreMap[x, y] += score;
+            scoreMap[x, y] += UnWalkableScore;
         }
 
         private string GetDirection()
