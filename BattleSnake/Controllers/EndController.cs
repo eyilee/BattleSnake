@@ -9,7 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace BattleSnake.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/{snake:alpha}/[controller]")]
     [ApiController]
     public class EndController : ControllerBase
     {

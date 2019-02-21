@@ -8,6 +8,7 @@ namespace BattleSnake.Interface
 {
     public interface IGame
     {
+        void Init(SnakeRequest request);
         string NextMove(SnakeRequest request);
     }
 }

@@ -11,15 +11,28 @@ using BattleSnake.Interface;
 
 namespace BattleSnake.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/{snake:alpha}/[controller]")]
     [ApiController]
     public class StartController : ControllerBase
     {
         // POST api/start
         [HttpPost]
-        public IActionResult Post([FromBody] SnakeRequest request)
+        public IActionResult Post(string snake, [FromBody] SnakeRequest request)
         {
-            AlphaSnake game = GameManager.Instance.CreateGame<AlphaSnake>(request.game.id);
+            IGame game = null;
+
+            switch (snake)
+            {
+                case "alpha":
+                    game = GameManager.Instance.CreateGame<AlphaSnake>(request.game.id);
+                    break;
+                case "beta":
+                    break;
+                case "gamma":
+                    break;
+                default:
+                    break;
+            }
 
             if (game == null)
             {
