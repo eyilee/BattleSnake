@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using BattleSnake.Models;
 using BattleSnake.Services;
+using BattleSnake.Interface;
 
 namespace BattleSnake.Controllers
 {
@@ -16,12 +17,16 @@ namespace BattleSnake.Controllers
     {
         // POST api/start
         [HttpPost]
-        public IActionResult Post([FromBody] StartRequest startRequest)
+        public IActionResult Post([FromBody] SnakeRequest request)
         {
-            if (GameManager.Instance.CreateGame(startRequest) == false)
+            AlphaSnake game = GameManager.Instance.CreateGame<AlphaSnake>(request.game.id);
+
+            if (game == null)
             {
                 return BadRequest();
             }
+
+            game.Init(request);
 
             StartResponse response = new StartResponse
             {

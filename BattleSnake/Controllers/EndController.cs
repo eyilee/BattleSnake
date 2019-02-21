@@ -15,12 +15,9 @@ namespace BattleSnake.Controllers
     {
         // POST api/end
         [HttpPost]
-        public IActionResult Post([FromBody] StartRequest startRequest)
+        public IActionResult Post([FromBody] SnakeRequest request)
         {
-            if (GameManager.Instance.RemoveGame(startRequest) == false)
-            {
-                return BadRequest();
-            }
+            GameManager.Instance.RemoveGame(request.game.id);
 
             return Ok();
         }

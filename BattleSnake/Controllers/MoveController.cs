@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using BattleSnake.Interface;
 using BattleSnake.Models;
 using BattleSnake.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -15,15 +16,16 @@ namespace BattleSnake.Controllers
     {
         // POST api/move
         [HttpPost]
-        public IActionResult Post([FromBody] StartRequest startRequest)
+        public IActionResult Post([FromBody] SnakeRequest request)
         {
-            Game game = GameManager.Instance.GetGame(startRequest);
+            IGame game = GameManager.Instance.GetGame(request.game.id);
+
             if (game == null)
             {
                 return BadRequest();
             }
 
-            string move = game.NextMove(startRequest);
+            string move = game.NextMove(request);
 
             MoveResponse response = new MoveResponse { move = move };
 
