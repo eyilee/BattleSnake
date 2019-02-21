@@ -14,7 +14,8 @@ namespace BattleSnake.Services
             Space,
             Food,
             Snake,
-            Head
+            Head,
+            WeakHead
         }
 
         private static readonly string[] Directions = { "up", "down", "left", "right" };
@@ -25,14 +26,15 @@ namespace BattleSnake.Services
         private MapType[,] walkMap;
         private double[,] scoreMap;
 
-        private const double MapScore = 200.0d;
-        private const int BoundScore = -9;
+        private const int MapScore = 0;
+        private const int BoundScore = -6;
+        private const int UnWalkableScore = -100;
 
         private int SpaceScore = 3;
         private int SpaceScale = 5;
 
-        private int FoodScore = 18;
-        private int FoodScale = 3;
+        private int FoodScore;
+        private int FoodScale;
 
         private int SnakeScore = -12;
         private int SnakeScale = 3;
@@ -40,8 +42,12 @@ namespace BattleSnake.Services
         private int HeadScore = -18;
         private int HeadScale = 1;
 
+        private int WeakHeadScore = 18;
+        private int WeakHeadScale = 1;
+
         private Coords head;
         private int health;
+        private int size;
 
         public void Init(SnakeRequest request)
         {
@@ -57,9 +63,9 @@ namespace BattleSnake.Services
         private void UpdateMaps(SnakeRequest request)
         {
             ResetMaps();
-            PutFoods(request.board.food);
-            PutSnakes(request.board.snakes);
-            PutPlayer(request.you);
+            SetPlayer(request.you);
+            SetSnakes(request.board.snakes);
+            SetFoods(request.board.food);
         }
 
         private void ResetMaps()
@@ -74,15 +80,31 @@ namespace BattleSnake.Services
             }
         }
 
-        private void PutFoods(List<Coords> foods)
+        private void SetFoods(List<Coords> foods)
         {
             foreach (var food in foods)
             {
                 walkMap[food.x, food.y] = MapType.Food;
             }
+
+            if (health < 30)
+            {
+                FoodScore = 72;
+                FoodScale = 8;
+            }
+            else if (health < 60)
+            {
+                FoodScore = 36;
+                FoodScale = 4;
+            }
+            else
+            {
+                FoodScore = 18;
+                FoodScale = 2;
+            }
         }
 
-        private void PutSnakes(List<Snake> snakes)
+        private void SetSnakes(List<Snake> snakes)
         {
             foreach (var snake in snakes)
             {
@@ -90,39 +112,37 @@ namespace BattleSnake.Services
                 {
                     walkMap[body.x, body.y] = MapType.Snake;
                 }
-                walkMap[snake.body[0].x, snake.body[0].y] = MapType.Head;
+
+                if (size < snake.body.Capacity)
+                {
+                    walkMap[snake.body[0].x, snake.body[0].y] = MapType.Head;
+                }
+                else
+                {
+                    walkMap[snake.body[0].x, snake.body[0].y] = MapType.WeakHead;
+                }
             }
         }
 
-        private void PutPlayer(Snake player)
+        private void SetPlayer(Snake player)
         {
             head = player.body[0];
             health = player.health;
+            size = player.body.Capacity;
 
             foreach (var body in player.body)
             {
                 walkMap[body.x, body.y] = MapType.Snake;
             }
-
-            if (health < 60)
-            {
-                FoodScore = 36;
-                FoodScale = 6;
-            }
-            else if (health < 30)
-            {
-                FoodScore = 54;
-                FoodScale = 8;
-            }
         }
 
-        public string NextMove(SnakeRequest request)
+        public string GetNextMove(SnakeRequest request)
         {
             UpdateMaps(request);
 
             CalculateScoreMap();
 
-            return MoveStep();
+            return GetDirection();
         }
 
         private void CalculateScoreMap()
@@ -162,10 +182,14 @@ namespace BattleSnake.Services
                     break;
                 case MapType.Snake:
                     ApplyScoreMask(x, y, SnakeScore, SnakeScale);
-                    scoreMap[x, y] -= 20;
+                    ApplyUnWalkableScore(x, y, UnWalkableScore);
                     break;
                 case MapType.Head:
                     ApplyScoreMask(x, y, HeadScore, HeadScale);
+                    ApplyUnWalkableScore(x, y, UnWalkableScore);
+                    break;
+                case MapType.WeakHead:
+                    ApplyScoreMask(x, y, WeakHeadScore, WeakHeadScale);
                     break;
                 default:
                     break;
@@ -187,15 +211,22 @@ namespace BattleSnake.Services
 
                     if (distance <= range)
                     {
-                        scoreMap[i, j] += score * (1 - distance / range);
+                        scoreMap[i, j] += score * (1 - distance / (range + 1));
                     }
                 }
             }
         }
 
-        private string MoveStep()
+        private void ApplyUnWalkableScore(int x, int y, int score)
         {
-            double[] score = { 0.0d, 0.0d, 0.0d, 0.0d };
+            throw new NotImplementedException();
+        }
+
+        private string GetDirection()
+        {
+            double min = scoreMap.Cast<double>().Min();
+
+            double[] score = { min, min, min, min };
 
             if (head.y - 1 >= 0) // up
             {
@@ -217,11 +248,11 @@ namespace BattleSnake.Services
                 score[3] = scoreMap[head.x + 1, head.y];
             }
 
-            int i = score[0] > score[1] ? 0 : 1;
-            int j = score[2] > score[3] ? 2 : 3;
-            int k = score[i] > score[j] ? i : j;
+            double max = score.Cast<double>().Max();
 
-            return Directions[k];
+            int index = Array.FindIndex(score, x => x == max);
+
+            return Directions[index];
         }
     }
 }

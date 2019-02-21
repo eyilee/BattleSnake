@@ -25,7 +25,7 @@ namespace BattleSnake.Controllers
                 return BadRequest();
             }
 
-            string move = game.NextMove(request);
+            string move = game.GetNextMove(request);
 
             MoveResponse response = new MoveResponse { move = move };
 
