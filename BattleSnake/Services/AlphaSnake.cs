@@ -39,7 +39,7 @@ namespace BattleSnake.Services
         private int SnakeScore = -12;
         private int SnakeScale = 3;
 
-        private int HeadScore = -18;
+        private int HeadScore = -36;
         private int HeadScale = 1;
 
         private int WeakHeadScore = 18;
@@ -89,18 +89,18 @@ namespace BattleSnake.Services
 
             if (health < 30)
             {
-                FoodScore = 72;
-                FoodScale = 8;
-            }
-            else if (health < 60)
-            {
                 FoodScore = 36;
                 FoodScale = 4;
             }
+            else if (health < 60)
+            {
+                FoodScore = 12;
+                FoodScale = 2;
+            }
             else
             {
-                FoodScore = 18;
-                FoodScale = 2;
+                FoodScore = SpaceScore;
+                FoodScale = SpaceScale;
             }
         }
 
@@ -190,6 +190,7 @@ namespace BattleSnake.Services
                     break;
                 case MapType.WeakHead:
                     ApplyScoreMask(x, y, WeakHeadScore, WeakHeadScale);
+                    ApplyUnWalkableScore(x, y, UnWalkableScore);
                     break;
                 default:
                     break;
@@ -219,7 +220,7 @@ namespace BattleSnake.Services
 
         private void ApplyUnWalkableScore(int x, int y, int score)
         {
-            throw new NotImplementedException();
+            scoreMap[x, y] += score;
         }
 
         private string GetDirection()
