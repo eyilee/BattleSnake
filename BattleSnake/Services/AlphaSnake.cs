@@ -13,48 +13,51 @@ namespace BattleSnake.Services
         {
             Space,
             Food,
-            Snake,
             Head,
-            WeakHead
+            WeakHead,
+            Body
         }
 
         private static readonly string[] Directions = { "up", "down", "left", "right" };
 
+        private const double Sqrt2 = 1.415;
+        private const double MapScore = 0;
+        private const double UnWalkableScore = -100;
+
         private int width;
         private int height;
+        private int mapSize;
 
         private MapType[,] walkMap;
         private double[,] scoreMap;
 
-        private const int MapScore = 0;
-        private const int UnWalkableScore = -100;
+        private const double BoundScore = -3;
+        private const int BoundScale = 1;
 
-        private int BoundScore = -3;
-        private int BoundScale = 1;
+        private const double SpaceScore = 3;
+        private const int SpaceScale = 3;
 
-        private int SpaceScore = 3;
-        private int SpaceScale = 3;
-
-        private int FoodScore;
+        private double FoodScore;
         private int FoodScale;
 
-        private int SnakeScore = -5;
-        private int SnakeScale = 3;
+        private const double HeadScore = -48;
+        private const int HeadScale = 1;
 
-        private int HeadScore = -48;
-        private int HeadScale = 2;
+        private const double WeakHeadScore = 24;
+        private const int WeakHeadScale = 1;
 
-        private int WeakHeadScore = 24;
-        private int WeakHeadScale = 1;
+        private const double BodyScore = -3;
+        private const int BodyScale = 1;
 
         private Coords head;
         private int health;
-        private int size;
+        private int bodySize;
 
         public void Init(SnakeRequest request)
         {
             width = request.board.width;
             height = request.board.height;
+            mapSize = (width + height) / 2;
 
             walkMap = new MapType[width, height];
             scoreMap = new double[width, height];
@@ -82,11 +85,15 @@ namespace BattleSnake.Services
             }
         }
 
-        private void SetFoods(List<Coords> foods)
+        private void SetPlayer(Snake player)
         {
-            foreach (var food in foods)
+            head = player.body[0];
+            health = player.health;
+            bodySize = player.body.Capacity;
+
+            foreach (var body in player.body)
             {
-                walkMap[food.x, food.y] = MapType.Food;
+                walkMap[body.x, body.y] = MapType.Body;
             }
 
             if (health < 30)
@@ -104,6 +111,15 @@ namespace BattleSnake.Services
                 FoodScore = SpaceScore;
                 FoodScale = SpaceScale;
             }
+
+            if (bodySize < mapSize / 2)
+            {
+                FoodScore = FoodScore * 1.5;
+            }
+            else if (bodySize < mapSize)
+            {
+                FoodScore = FoodScore * 1.2;
+            }
         }
 
         private void SetSnakes(List<Snake> snakes)
@@ -112,10 +128,10 @@ namespace BattleSnake.Services
             {
                 foreach (var body in snake.body)
                 {
-                    walkMap[body.x, body.y] = MapType.Snake;
+                    walkMap[body.x, body.y] = MapType.Body;
                 }
 
-                if (size <= snake.body.Capacity)
+                if (bodySize <= snake.body.Capacity)
                 {
                     walkMap[snake.body[0].x, snake.body[0].y] = MapType.Head;
                 }
@@ -126,15 +142,11 @@ namespace BattleSnake.Services
             }
         }
 
-        private void SetPlayer(Snake player)
+        private void SetFoods(List<Coords> foods)
         {
-            head = player.body[0];
-            health = player.health;
-            size = player.body.Capacity;
-
-            foreach (var body in player.body)
+            foreach (var food in foods)
             {
-                walkMap[body.x, body.y] = MapType.Snake;
+                walkMap[food.x, food.y] = MapType.Food;
             }
         }
 
@@ -182,10 +194,6 @@ namespace BattleSnake.Services
                 case MapType.Food:
                     ApplyScoreMask(x, y, FoodScore, FoodScale);
                     break;
-                case MapType.Snake:
-                    ApplyScoreMask(x, y, SnakeScore, SnakeScale);
-                    ApplyUnWalkableScore(x, y);
-                    break;
                 case MapType.Head:
                     ApplyScoreMask(x, y, HeadScore, HeadScale);
                     ApplyUnWalkableScore(x, y);
@@ -194,12 +202,16 @@ namespace BattleSnake.Services
                     ApplyScoreMask(x, y, WeakHeadScore, WeakHeadScale);
                     ApplyUnWalkableScore(x, y);
                     break;
+                case MapType.Body:
+                    ApplyScoreMask(x, y, BodyScore, BodyScale);
+                    ApplyUnWalkableScore(x, y);
+                    break;
                 default:
                     break;
             }
         }
 
-        private void ApplyScoreMask(int x, int y, int score, int range)
+        private void ApplyScoreMask(int x, int y, double score, int range)
         {
             int up = Math.Max(y - range, 0);
             int down = Math.Min(y + range, height - 1);
@@ -212,9 +224,9 @@ namespace BattleSnake.Services
                 {
                     double distance = Math.Sqrt((i - x) * (i - x) + (j - y) * (j - y));
 
-                    if (distance <= range)
+                    if (distance <= range * Sqrt2)
                     {
-                        scoreMap[i, j] += score * (1 - distance / (range + 1));
+                        scoreMap[i, j] += score * (1 - distance / (range * Sqrt2));
                     }
                 }
             }
@@ -231,22 +243,27 @@ namespace BattleSnake.Services
 
             double[] score = { min, min, min, min };
 
-            if (head.y - 1 >= 0) // up
+            int up = GetLastSpace(head.x, head.y - 1);
+            int down = GetLastSpace(head.x, head.y + 1);
+            int left = GetLastSpace(head.x - 1, head.y);
+            int right = GetLastSpace(head.x + 1, head.y);
+
+            if (up > bodySize / 2)
             {
                 score[0] = scoreMap[head.x, head.y - 1];
             }
 
-            if (head.y + 1 < height) // down
+            if (down > bodySize / 2)
             {
                 score[1] = scoreMap[head.x, head.y + 1];
             }
 
-            if (head.x - 1 >= 0) // left
+            if (left > bodySize / 2)
             {
                 score[2] = scoreMap[head.x - 1, head.y];
             }
 
-            if (head.x + 1 < width) // right
+            if (right > bodySize / 2)
             {
                 score[3] = scoreMap[head.x + 1, head.y];
             }
@@ -256,6 +273,45 @@ namespace BattleSnake.Services
             int index = Array.FindIndex(score, x => x == max);
 
             return Directions[index];
+        }
+
+        private int GetLastSpace(int x, int y, int length = 0)
+        {
+            if (x < 0 || x >= width || y < 0 || y >= height)
+            {
+                return length;
+            }
+
+            switch (walkMap[x, y])
+            {
+                case MapType.Space:
+                case MapType.Food:
+                    break;
+                case MapType.Head:
+                case MapType.WeakHead:
+                case MapType.Body:
+                    return length;
+                default:
+                    break;
+            }
+
+            if (length > bodySize / 2)
+            {
+                return length;
+            }
+
+            MapType prev = walkMap[x, y];
+            walkMap[x, y] = MapType.Body;
+
+            int[] spaces = { 0, 0, 0, 0 };
+            spaces[0] = GetLastSpace(x, y + 1, length + 1);
+            spaces[1] = GetLastSpace(x, y - 1, length + 1);
+            spaces[2] = GetLastSpace(x - 1, y, length + 1);
+            spaces[3] = GetLastSpace(x + 1, y, length + 1);
+
+            walkMap[x, y] = prev;
+
+            return spaces.Cast<int>().Max();
         }
     }
 }
