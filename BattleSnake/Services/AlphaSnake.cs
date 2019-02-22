@@ -35,7 +35,7 @@ namespace BattleSnake.Services
         private const int BoundScale = 1;
 
         private const double SpaceScore = 3;
-        private const int SpaceScale = 3;
+        private const int SpaceScale = 1;
 
         private double FoodScore;
         private int FoodScale;
@@ -43,7 +43,7 @@ namespace BattleSnake.Services
         private const double HeadScore = -48;
         private const int HeadScale = 1;
 
-        private const double WeakHeadScore = 24;
+        private const double WeakHeadScore = 48;
         private const int WeakHeadScale = 1;
 
         private const double BodyScore = -3;
@@ -114,11 +114,11 @@ namespace BattleSnake.Services
 
             if (bodySize < mapSize / 2)
             {
-                FoodScore = FoodScore * 1.5;
+                FoodScore = FoodScore * 4;
             }
             else if (bodySize < mapSize)
             {
-                FoodScore = FoodScore * 1.2;
+                FoodScore = FoodScore * 2;
             }
         }
 
