@@ -104,7 +104,15 @@ namespace BattleSnake.Services
                 walkMap[body.x, body.y] = MapType.MyBody;
             }
 
-            walkMap[player.body.Last().x, player.body.Last().y] = MapType.Tail;
+            if (bodySize >= 2)
+            {
+                Coords[] tails = player.body.TakeLast(2).ToArray();
+
+                if (tails[0].x == tails[1].x && tails[0].y == tails[1].y)
+                {
+                    walkMap[tails[0].x, tails[0].y] = MapType.Tail;
+                }
+            }
 
             if (health < 30)
             {
@@ -150,7 +158,15 @@ namespace BattleSnake.Services
                     walkMap[snake.body[0].x, snake.body[0].y] = MapType.WeakHead;
                 }
 
-                walkMap[snake.body.Last().x, snake.body.Last().y] = MapType.Tail;
+                if (snake.body.Count >= 2)
+                {
+                    Coords[] tails = snake.body.TakeLast(2).ToArray();
+
+                    if (tails[0].x == tails[1].x && tails[0].y == tails[1].y)
+                    {
+                        walkMap[tails[0].x, tails[0].y] = MapType.Tail;
+                    }
+                }
             }
         }
 
