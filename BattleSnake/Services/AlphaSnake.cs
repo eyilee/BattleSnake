@@ -316,7 +316,7 @@ namespace BattleSnake.Services
             {
                 int space = GetLastSpace(head.x, head.y - 1);
 
-                if (space < bodySize / 2)
+                if (space <= bodySize / 2)
                 {
                     scoreMap[head.x, head.y - 1] += UnWalkableScore * (1 - space / (bodySize / 2));
                 }
@@ -328,7 +328,7 @@ namespace BattleSnake.Services
             {
                 int space = GetLastSpace(head.x, head.y + 1);
 
-                if (space < bodySize / 2)
+                if (space <= bodySize / 2)
                 {
                     scoreMap[head.x, head.y + 1] += UnWalkableScore * (1 - space / (bodySize / 2));
                 }
@@ -340,7 +340,7 @@ namespace BattleSnake.Services
             {
                 int space = GetLastSpace(head.x - 1, head.y);
 
-                if (space < bodySize / 2)
+                if (space <= bodySize / 2)
                 {
                     scoreMap[head.x - 1, head.y] += UnWalkableScore * (1 - space / (bodySize / 2));
                 }
@@ -352,7 +352,7 @@ namespace BattleSnake.Services
             {
                 int space = GetLastSpace(head.x + 1, head.y);
 
-                if (space < bodySize / 2)
+                if (space <= bodySize / 2)
                 {
                     scoreMap[head.x + 1, head.y] += UnWalkableScore * (1 - space / (bodySize / 2));
                 }
@@ -391,7 +391,7 @@ namespace BattleSnake.Services
                     break;
             }
 
-            if (length > bodySize)
+            if (length > bodySize / 2)
             {
                 return length;
             }
