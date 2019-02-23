@@ -40,8 +40,8 @@ namespace BattleSnake.Services
         private double FoodScore;
         private int FoodScale;
 
-        private double RaceFoodScore;
-        private int RaceFoodScale;
+        private const double RaceFoodScore = -48;
+        private const int RaceFoodScale = 1;
 
         private const double HeadScore = -144;
         private const int HeadScale = 1;
@@ -139,9 +139,6 @@ namespace BattleSnake.Services
             {
                 FoodScore = FoodScore * 2;
             }
-
-            RaceFoodScore = -FoodScore;
-            RaceFoodScale = FoodScale;
         }
 
         private void SetSnakes(List<Snake> snakes)
@@ -321,7 +318,7 @@ namespace BattleSnake.Services
 
                 if (space <= bodySize)
                 {
-                    scoreMap[head.x, head.y - 1] += UnWalkableScore * (1 - space / (bodySize / 2));
+                    scoreMap[head.x, head.y - 1] += UnWalkableScore * (1 - space / bodySize);
                 }
 
                 score[0] = scoreMap[head.x, head.y - 1];
@@ -333,7 +330,7 @@ namespace BattleSnake.Services
 
                 if (space <= bodySize)
                 {
-                    scoreMap[head.x, head.y + 1] += UnWalkableScore * (1 - space / (bodySize / 2));
+                    scoreMap[head.x, head.y + 1] += UnWalkableScore * (1 - space / bodySize);
                 }
 
                 score[1] = scoreMap[head.x, head.y + 1];
@@ -345,7 +342,7 @@ namespace BattleSnake.Services
 
                 if (space <= bodySize)
                 {
-                    scoreMap[head.x - 1, head.y] += UnWalkableScore * (1 - space / (bodySize / 2));
+                    scoreMap[head.x - 1, head.y] += UnWalkableScore * (1 - space / bodySize);
                 }
 
                 score[2] = scoreMap[head.x - 1, head.y];
@@ -357,7 +354,7 @@ namespace BattleSnake.Services
 
                 if (space <= bodySize)
                 {
-                    scoreMap[head.x + 1, head.y] += UnWalkableScore * (1 - space / (bodySize / 2));
+                    scoreMap[head.x + 1, head.y] += UnWalkableScore * (1 - space / bodySize);
                 }
 
                 score[3] = scoreMap[head.x + 1, head.y];
@@ -381,6 +378,7 @@ namespace BattleSnake.Services
             {
                 case MapType.Space:
                 case MapType.Food:
+                case MapType.RaceFood:
                     break;
                 case MapType.Head:
                 case MapType.WeakHead:
