@@ -13,6 +13,7 @@ namespace BattleSnake.Services
         {
             Space,
             Food,
+            RaceFood,
             Head,
             WeakHead,
             Body,
@@ -37,10 +38,13 @@ namespace BattleSnake.Services
         private const int BoundScale = 1;
 
         private const double SpaceScore = 3;
-        private const int SpaceScale = 1;
+        private const int SpaceScale = 2;
 
         private double FoodScore;
         private int FoodScale;
+
+        private double RaceFoodScore;
+        private int RaceFoodScale;
 
         private const double HeadScore = -144;
         private const int HeadScale = 1;
@@ -49,7 +53,7 @@ namespace BattleSnake.Services
         private const int WeakHeadScale = 1;
 
         private const double BodyScore = -3;
-        private const int BodyScale = 1;
+        private const int BodyScale = 2;
 
         private const double MyBodyScore = -1;
         private const int MyBodyScale = 1;
@@ -138,6 +142,9 @@ namespace BattleSnake.Services
             {
                 FoodScore = FoodScore * 2;
             }
+
+            RaceFoodScore = -FoodScore;
+            RaceFoodScale = FoodScale;
         }
 
         private void SetSnakes(List<Snake> snakes)
@@ -174,8 +181,52 @@ namespace BattleSnake.Services
         {
             foreach (var food in foods)
             {
-                walkMap[food.x, food.y] = MapType.Food;
+                if (IsRaceFood(food.x, food.y))
+                {
+                    walkMap[food.x, food.y] = MapType.RaceFood;
+                }
+                else
+                {
+                    walkMap[food.x, food.y] = MapType.Food;
+                }
             }
+        }
+
+        private bool IsRaceFood(int x, int y)
+        {
+            if (y - 1 >= 0) // up
+            {
+                if (walkMap[x, y - 1] == MapType.Head)
+                {
+                    return true;
+                }
+            }
+
+            if (y + 1 < height) // down
+            {
+                if (walkMap[x, y + 1] == MapType.Head)
+                {
+                    return true;
+                }
+            }
+
+            if (x - 1 >= 0) // left
+            {
+                if (walkMap[x - 1, y] == MapType.Head)
+                {
+                    return true;
+                }
+            }
+
+            if (x + 1 < width) // right
+            {
+                if (walkMap[x + 1, y] == MapType.Head)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         public string GetNextMove(SnakeRequest request)
@@ -221,6 +272,9 @@ namespace BattleSnake.Services
                     break;
                 case MapType.Food:
                     ApplyScoreMask(x, y, FoodScore, FoodScale);
+                    break;
+                case MapType.RaceFood:
+                    ApplyScoreMask(x, y, RaceFoodScore, RaceFoodScale);
                     break;
                 case MapType.Head:
                     ApplyScoreMask(x, y, HeadScore, HeadScale);
@@ -282,7 +336,7 @@ namespace BattleSnake.Services
             {
                 int space = GetLastSpace(head.x, head.y - 1);
 
-                if (space < bodySize / 2)
+                if (space <= bodySize)
                 {
                     scoreMap[head.x, head.y - 1] += UnWalkableScore * (1 - space / (bodySize / 2));
                 }
@@ -294,7 +348,7 @@ namespace BattleSnake.Services
             {
                 int space = GetLastSpace(head.x, head.y + 1);
 
-                if (space < bodySize / 2)
+                if (space <= bodySize)
                 {
                     scoreMap[head.x, head.y + 1] += UnWalkableScore * (1 - space / (bodySize / 2));
                 }
@@ -306,7 +360,7 @@ namespace BattleSnake.Services
             {
                 int space = GetLastSpace(head.x - 1, head.y);
 
-                if (space < bodySize / 2)
+                if (space <= bodySize)
                 {
                     scoreMap[head.x - 1, head.y] += UnWalkableScore * (1 - space / (bodySize / 2));
                 }
@@ -318,7 +372,7 @@ namespace BattleSnake.Services
             {
                 int space = GetLastSpace(head.x + 1, head.y);
 
-                if (space < bodySize / 2)
+                if (space <= bodySize)
                 {
                     scoreMap[head.x + 1, head.y] += UnWalkableScore * (1 - space / (bodySize / 2));
                 }
@@ -356,7 +410,7 @@ namespace BattleSnake.Services
                     break;
             }
 
-            if (length > bodySize / 2)
+            if (length > bodySize)
             {
                 return length;
             }
