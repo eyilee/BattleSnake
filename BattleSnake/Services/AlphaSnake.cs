@@ -104,13 +104,13 @@ namespace BattleSnake.Services
                 walkMap[body.x, body.y] = MapType.MyBody;
             }
 
-            if (bodySize >= 2)
+            if (bodySize > 2)
             {
                 Coords[] tails = player.body.TakeLast(2).ToArray();
 
-                if (tails[0].x == tails[1].x && tails[0].y == tails[1].y)
+                if (tails[0].x != tails[1].x || tails[0].y != tails[1].y)
                 {
-                    walkMap[tails[0].x, tails[0].y] = MapType.Tail;
+                    walkMap[tails[1].x, tails[1].y] = MapType.Tail;
                 }
             }
 
@@ -162,9 +162,9 @@ namespace BattleSnake.Services
                 {
                     Coords[] tails = snake.body.TakeLast(2).ToArray();
 
-                    if (tails[0].x == tails[1].x && tails[0].y == tails[1].y)
+                    if (tails[0].x != tails[1].x || tails[0].y != tails[1].y)
                     {
-                        walkMap[tails[0].x, tails[0].y] = MapType.Tail;
+                        walkMap[tails[1].x, tails[1].y] = MapType.Tail;
                     }
                 }
             }
