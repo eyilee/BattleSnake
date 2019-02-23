@@ -34,11 +34,8 @@ namespace BattleSnake.Services
         private MapType[,] walkMap;
         private double[,] scoreMap;
 
-        private const double BoundScore = -3;
-        private const int BoundScale = 1;
-
         private const double SpaceScore = 3;
-        private const int SpaceScale = 2;
+        private const int SpaceScale = 1;
 
         private double FoodScore;
         private int FoodScale;
@@ -53,7 +50,7 @@ namespace BattleSnake.Services
         private const int WeakHeadScale = 1;
 
         private const double BodyScore = -3;
-        private const int BodyScale = 2;
+        private const int BodyScale = 1;
 
         private const double MyBodyScore = -1;
         private const int MyBodyScale = 1;
@@ -246,20 +243,6 @@ namespace BattleSnake.Services
                 {
                     CalculateWalkableScore(x, y);
                 }
-            }
-        }
-
-        [Obsolete]
-        private void CalculateBoundScore(int x, int y)
-        {
-            if (y == 0 || y == height)
-            {
-                ApplyScoreMask(x, y, BoundScore, BoundScale);
-            }
-
-            if (x == 0 || x == width)
-            {
-                ApplyScoreMask(x, y, BoundScore, BoundScale);
             }
         }
 
