@@ -19,6 +19,16 @@ namespace BattleSnake.Models
             Array.Clear(values, 0, values.Length);
         }
 
+        public T Min()
+        {
+            return values.Cast<T>().Min();
+        }
+
+        public T Max()
+        {
+            return values.Cast<T>().Max();
+        }
+
         public T this[int x, int y] {
             get { return values[x, y]; }
             set { values[x, y] = value; }
