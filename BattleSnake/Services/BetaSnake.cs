@@ -21,7 +21,19 @@ namespace BattleSnake.Services
             RaceFood
         }
 
-        private static readonly string[] Directions = { "up", "down", "left", "right" };
+        private static readonly Coords[] Moves = {
+            Coords.Up,
+            Coords.Down,
+            Coords.Left,
+            Coords.Right
+        };
+
+        private static readonly string[] Directions = {
+            "up",
+            "down",
+            "left",
+            "right"
+        };
 
         private const double Sqrt2 = 1.415;
         private const double UnWalkableScore = -200;
@@ -30,8 +42,8 @@ namespace BattleSnake.Services
         private int height;
         private int mapSize;
 
-        private MapType[,] walkMap;
-        private double[,] scoreMap;
+        private Map<MapType> walkMap;
+        private Map<double> scoreMap;
 
         private const double SpaceScore = 3;
         private const int SpaceScale = 1;
@@ -68,8 +80,8 @@ namespace BattleSnake.Services
             height = request.board.height + 2;
             mapSize = (width + height) / 2;
 
-            walkMap = new MapType[width, height];
-            scoreMap = new double[width, height];
+            walkMap = new Map<MapType>(width, height);
+            scoreMap = new Map<double>(width, height);
 
             SetData(request);
 
@@ -109,11 +121,7 @@ namespace BattleSnake.Services
 
         private void ShiftCoords(List<Coords> coords)
         {
-            foreach (Coords coord in coords)
-            {
-                coord.x += 1;
-                coord.y += 1;
-            }
+            coords.ForEach(x => x += Coords.Identity);
         }
 
         private void UpdateMaps()
@@ -127,8 +135,8 @@ namespace BattleSnake.Services
 
         private void ResetMaps()
         {
-            Array.Clear(walkMap, 0, walkMap.Length);
-            Array.Clear(scoreMap, 0, scoreMap.Length);
+            walkMap.Clear();
+            scoreMap.Clear();
         }
 
         private void UpdateWalls()
@@ -153,16 +161,16 @@ namespace BattleSnake.Services
 
             foreach (Coords body in player.body)
             {
-                walkMap[body.x, body.y] = MapType.Body;
+                walkMap[body] = MapType.Body;
             }
 
             if (player.body.Count > 2)
             {
                 Coords[] tails = player.body.TakeLast(2).ToArray();
 
-                if (tails[0].x != tails[1].x || tails[0].y != tails[1].y)
+                if (tails[0] != tails[1])
                 {
-                    walkMap[tails[1].x, tails[1].y] = MapType.Tail;
+                    walkMap[tails[1]] = MapType.Tail;
                 }
             }
 
@@ -198,25 +206,25 @@ namespace BattleSnake.Services
             {
                 foreach (Coords body in rival.body)
                 {
-                    walkMap[body.x, body.y] = MapType.Body;
+                    walkMap[body] = MapType.Body;
                 }
 
                 if (rival.body.Count >= player.body.Count)
                 {
-                    walkMap[rival.body[0].x, rival.body[0].y] = MapType.Head;
+                    walkMap[rival.body[0]] = MapType.Head;
                 }
                 else
                 {
-                    walkMap[rival.body[0].x, rival.body[0].y] = MapType.WeakHead;
+                    walkMap[rival.body[0]] = MapType.WeakHead;
                 }
 
                 if (rival.body.Count >= 2)
                 {
                     Coords[] tails = rival.body.TakeLast(2).ToArray();
 
-                    if (tails[0].x != tails[1].x || tails[0].y != tails[1].y)
+                    if (tails[0] != tails[1])
                     {
-                        walkMap[tails[1].x, tails[1].y] = MapType.Tail;
+                        walkMap[tails[1]] = MapType.Tail;
                     }
                 }
             }
@@ -226,23 +234,23 @@ namespace BattleSnake.Services
         {
             foreach (Coords food in foods)
             {
-                if (IsRaceFood(food.x, food.y))
+                if (IsRaceFood(food))
                 {
-                    walkMap[food.x, food.y] = MapType.RaceFood;
+                    walkMap[food] = MapType.RaceFood;
                 }
                 else
                 {
-                    walkMap[food.x, food.y] = MapType.Food;
+                    walkMap[food] = MapType.Food;
                 }
             }
         }
 
-        private bool IsRaceFood(int x, int y)
+        private bool IsRaceFood(Coords coords)
         {
-            if (walkMap[x, y - 1] == MapType.Head ||
-                walkMap[x, y + 1] == MapType.Head ||
-                walkMap[x - 1, y] == MapType.Head ||
-                walkMap[x + 1, y] == MapType.Head
+            if (walkMap[coords + Coords.Up] == MapType.Head ||
+                walkMap[coords + Coords.Down] == MapType.Head ||
+                walkMap[coords + Coords.Left] == MapType.Head ||
+                walkMap[coords + Coords.Right] == MapType.Head
                 )
             {
                 return true;
@@ -336,68 +344,28 @@ namespace BattleSnake.Services
 
         private string GetDirection()
         {
-            double min = scoreMap.Cast<double>().Min();
+            List<double> scores = new List<double>();
 
-            double[] score = { min, min, min, min };
-
-            // up
+            foreach (Coords move in Moves)
             {
-                int space = GetLastSpace(head.x, head.y - 1);
+                int space = GetLastSpace(head + move);
 
                 if (space <= bodySize / 2)
                 {
-                    scoreMap[head.x, head.y - 1] += UnWalkableScore * (1 - space / (bodySize / 2));
+                    scoreMap[head + move] += UnWalkableScore * (1 - space / (bodySize / 2));
                 }
 
-                score[0] = scoreMap[head.x, head.y - 1];
+                scores.Add(scoreMap[head + move]);
             }
 
-            // down
-            {
-                int space = GetLastSpace(head.x, head.y + 1);
-
-                if (space <= bodySize / 2)
-                {
-                    scoreMap[head.x, head.y + 1] += UnWalkableScore * (1 - space / (bodySize / 2));
-                }
-
-                score[1] = scoreMap[head.x, head.y + 1];
-            }
-
-            // left
-            {
-                int space = GetLastSpace(head.x - 1, head.y);
-
-                if (space <= bodySize / 2)
-                {
-                    scoreMap[head.x - 1, head.y] += UnWalkableScore * (1 - space / (bodySize / 2));
-                }
-
-                score[2] = scoreMap[head.x - 1, head.y];
-            }
-
-            // right
-            {
-                int space = GetLastSpace(head.x + 1, head.y);
-
-                if (space <= bodySize / 2)
-                {
-                    scoreMap[head.x + 1, head.y] += UnWalkableScore * (1 - space / (bodySize / 2));
-                }
-
-                score[3] = scoreMap[head.x + 1, head.y];
-            }
-
-            double max = score.Cast<double>().Max();
-
-            int index = Array.FindIndex(score, x => x == max);
+            int index = scores.IndexOf(scores.Max());
 
             return Directions[index];
         }
 
-        private int GetLastSpace(int x, int y, int length = 0)
+        private int GetLastSpace(Coords coords, int length = 0)
         {
-            switch (walkMap[x, y])
+            switch (walkMap[coords])
             {
                 case MapType.Space:
                     break;
@@ -419,18 +387,26 @@ namespace BattleSnake.Services
                 return length;
             }
 
-            MapType prev = walkMap[x, y];
-            walkMap[x, y] = MapType.Body;
+            MapType prev = walkMap[coords];
+            walkMap[coords] = MapType.Body;
 
-            int[] spaces = { 0, 0, 0, 0 };
-            spaces[0] = GetLastSpace(x, y + 1, length + 1);
-            spaces[1] = GetLastSpace(x, y - 1, length + 1);
-            spaces[2] = GetLastSpace(x - 1, y, length + 1);
-            spaces[3] = GetLastSpace(x + 1, y, length + 1);
+            Coords[] tail = player.body.TakeLast(2).ToArray();
+            MapType[] prevTail = { walkMap[tail[0]], walkMap[tail[1]] };
+            walkMap[tail[0]] = MapType.Tail;
+            walkMap[tail[1]] = MapType.Space;
 
-            walkMap[x, y] = prev;
+            List<int> spaces = new List<int>();
 
-            return spaces.Cast<int>().Max();
+            foreach (Coords move in Moves)
+            {
+                spaces.Add(GetLastSpace(coords + move, length + 1));
+            }
+
+            walkMap[coords] = prev;
+            walkMap[tail[0]] = prevTail[0];
+            walkMap[tail[1]] = prevTail[1];
+
+            return spaces.Max();
         }
     }
 }

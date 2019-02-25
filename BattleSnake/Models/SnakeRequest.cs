@@ -30,6 +30,44 @@ namespace BattleSnake.Models
     {
         public int x;
         public int y;
+
+        public static readonly Coords Identity = new Coords { x = 1, y = 1 };
+        public static readonly Coords Up = new Coords { x = 0, y = -1 };
+        public static readonly Coords Down = new Coords { x = 0, y = 1 };
+        public static readonly Coords Left = new Coords { x = -1, y = 0 };
+        public static readonly Coords Right = new Coords { x = 1, y = 0 };
+
+        public static Coords operator +(Coords lhs, Coords rhs)
+        {
+            return new Coords
+            {
+                x = lhs.x + rhs.x,
+                y = lhs.y + rhs.y
+            };
+        }
+
+        public static bool operator ==(Coords lhs, Coords rhs)
+        {
+            return lhs.x == rhs.x && lhs.y == rhs.y;
+        }
+
+        public static bool operator !=(Coords lhs, Coords rhs)
+        {
+            return lhs.x != rhs.x || lhs.y != rhs.y;
+        }
+
+        public override bool Equals(object obj)
+        {
+            Coords coords = obj as Coords;
+            return coords != null &&
+                   x == coords.x &&
+                   y == coords.y;
+        }
+
+        public override int GetHashCode()
+        {
+            return HashCode.Combine(x, y);
+        }
     }
 
     public class Snake
