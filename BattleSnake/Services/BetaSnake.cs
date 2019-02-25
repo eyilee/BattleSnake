@@ -21,11 +21,11 @@ namespace BattleSnake.Services
             RaceFood
         }
 
-        private static readonly Coords[] Moves = {
-            Coords.Up,
-            Coords.Down,
-            Coords.Left,
-            Coords.Right
+        private static readonly Coord[] Moves = {
+            MapMove.Up,
+            MapMove.Down,
+            MapMove.Left,
+            MapMove.Right
         };
 
         private static readonly string[] Directions = {
@@ -46,7 +46,7 @@ namespace BattleSnake.Services
         private Map<double> scoreMap;
 
         private const double SpaceScore = 3;
-        private const int SpaceScale = 1;
+        private const int SpaceScale = 2;
 
         private double FoodScore;
         private int FoodScale;
@@ -60,77 +60,100 @@ namespace BattleSnake.Services
         private const double WeakHeadScore = 48;
         private const int WeakHeadScale = 1;
 
-        private const double BodyScore = -3;
-        private const int BodyScale = 1;
+        private const double BodyScore = 3;
+        private const int BodyScale = 2;
 
         private const double TailScore = 3;
-        private const int TailScale = 1;
+        private const int TailScale = 2;
 
         private Snake player;
-        private Coords head;
-        private int health;
         private int bodySize;
 
-        private List<Snake> rivals;
-        private List<Coords> foods;
+        private List<Snake> snakes;
+        private List<Coord> food;
 
-        public void Init(SnakeRequest request)
+        public void Init(GameRequest request)
         {
             width = request.board.width + 2;
             height = request.board.height + 2;
-            mapSize = (width + height) / 2;
+            mapSize = width + height;
 
             walkMap = new Map<MapType>(width, height);
             scoreMap = new Map<double>(width, height);
 
-            SetData(request);
-
-            UpdateMaps();
+            Update(request);
         }
 
-        private void SetData(SnakeRequest request)
+        private void Update(GameRequest request)
         {
             SetPlayer(request.you);
-            SetRivals(request.board.snakes);
+            SetSnakes(request.board.snakes);
             SetFoods(request.board.food);
-        }
 
-        private void SetPlayer(Snake you)
-        {
-            player = you;
-
-            ShiftCoords(player.body);
-        }
-
-        private void SetRivals(List<Snake> snakes)
-        {
-            rivals = snakes.Where(x => x.id != player.id).ToList();
-
-            foreach (Snake rival in rivals)
-            {
-                ShiftCoords(rival.body);
-            }
-        }
-
-        private void SetFoods(List<Coords> food)
-        {
-            foods = food;
-
-            ShiftCoords(foods);
-        }
-
-        private void ShiftCoords(List<Coords> coords)
-        {
-            coords.ForEach(x => x += Coords.Identity);
-        }
-
-        private void UpdateMaps()
-        {
             ResetMaps();
             UpdateWalls();
             UpdatePlayer();
-            UpdateRivals();
-            UpdateFood();
+            UpdateSnakes();
+            UpdateFoods();
+        }
+
+        private void SetPlayer(Snake player)
+        {
+            for (int i = 0; i < player.body.Count; i++)
+            {
+                player.body[i] += MapMove.Identity;
+            }
+
+            this.player = player;
+            bodySize = this.player.body.Count;
+
+            if (player.health < 30)
+            {
+                FoodScore = 36;
+                FoodScale = 4;
+            }
+            else if (player.health < 60)
+            {
+                FoodScore = 12;
+                FoodScale = 2;
+            }
+            else
+            {
+                FoodScore = SpaceScore;
+                FoodScale = SpaceScale;
+            }
+
+            if (bodySize < mapSize / 2)
+            {
+                FoodScore = FoodScore * 4;
+            }
+            else if (bodySize < mapSize)
+            {
+                FoodScore = FoodScore * 2;
+            }
+        }
+
+        private void SetSnakes(List<Snake> snakes)
+        {
+            for (int i = 0; i < snakes.Count; i++)
+            {
+                for (int j = 0; j < snakes[i].body.Count; j++)
+                {
+                    snakes[i].body[j] += MapMove.Identity;
+                }
+            }
+
+            this.snakes = snakes.Where(x => x.id != player.id).ToList();
+        }
+
+        private void SetFoods(List<Coord> food)
+        {
+            for (int i = 0; i < food.Count; i++)
+            {
+                food[i] += MapMove.Identity;
+            }
+
+            this.food = food;
         }
 
         private void ResetMaps()
@@ -155,72 +178,43 @@ namespace BattleSnake.Services
 
         private void UpdatePlayer()
         {
-            head = player.body[0];
-            health = player.health;
-            bodySize = player.body.Count;
-
-            foreach (Coords body in player.body)
+            foreach (Coord body in player.body)
             {
                 walkMap[body] = MapType.Body;
             }
 
-            if (player.body.Count > 2)
+            if (bodySize > 2)
             {
-                Coords[] tails = player.body.TakeLast(2).ToArray();
+                Coord[] tails = player.body.TakeLast(2).ToArray();
 
                 if (tails[0] != tails[1])
                 {
                     walkMap[tails[1]] = MapType.Tail;
                 }
             }
-
-            if (health < 30)
-            {
-                FoodScore = 36;
-                FoodScale = 4;
-            }
-            else if (health < 60)
-            {
-                FoodScore = 12;
-                FoodScale = 2;
-            }
-            else
-            {
-                FoodScore = SpaceScore;
-                FoodScale = SpaceScale;
-            }
-
-            if (bodySize < mapSize / 2)
-            {
-                FoodScore = FoodScore * 4;
-            }
-            else if (bodySize < mapSize)
-            {
-                FoodScore = FoodScore * 2;
-            }
         }
 
-        private void UpdateRivals()
+        private void UpdateSnakes()
         {
-            foreach (Snake rival in rivals)
+            foreach (Snake snake in snakes)
             {
-                foreach (Coords body in rival.body)
+                foreach (Coord body in snake.body)
                 {
                     walkMap[body] = MapType.Body;
                 }
 
-                if (rival.body.Count >= player.body.Count)
+                if (snake.body.Count >= bodySize)
                 {
-                    walkMap[rival.body[0]] = MapType.Head;
+                    walkMap[snake.body[0]] = MapType.Head;
                 }
                 else
                 {
-                    walkMap[rival.body[0]] = MapType.WeakHead;
+                    walkMap[snake.body[0]] = MapType.WeakHead;
                 }
 
-                if (rival.body.Count >= 2)
+                if (snake.body.Count >= 2)
                 {
-                    Coords[] tails = rival.body.TakeLast(2).ToArray();
+                    Coord[] tails = snake.body.TakeLast(2).ToArray();
 
                     if (tails[0] != tails[1])
                     {
@@ -230,9 +224,9 @@ namespace BattleSnake.Services
             }
         }
 
-        private void UpdateFood()
+        private void UpdateFoods()
         {
-            foreach (Coords food in foods)
+            foreach (Coord food in food)
             {
                 if (IsRaceFood(food))
                 {
@@ -245,12 +239,12 @@ namespace BattleSnake.Services
             }
         }
 
-        private bool IsRaceFood(Coords coords)
+        private bool IsRaceFood(Coord coord)
         {
-            if (walkMap[coords + Coords.Up] == MapType.Head ||
-                walkMap[coords + Coords.Down] == MapType.Head ||
-                walkMap[coords + Coords.Left] == MapType.Head ||
-                walkMap[coords + Coords.Right] == MapType.Head
+            if (walkMap[coord + MapMove.Up] == MapType.Head ||
+                walkMap[coord + MapMove.Down] == MapType.Head ||
+                walkMap[coord + MapMove.Left] == MapType.Head ||
+                walkMap[coord + MapMove.Right] == MapType.Head
                 )
             {
                 return true;
@@ -259,11 +253,9 @@ namespace BattleSnake.Services
             return false;
         }
 
-        public string GetNextMove(SnakeRequest request)
+        public string GetNextMove(GameRequest request)
         {
-            SetData(request);
-
-            UpdateMaps();
+            Update(request);
 
             CalculateScoreMap();
 
@@ -300,6 +292,7 @@ namespace BattleSnake.Services
                     ApplyUnWalkableScore(x, y);
                     break;
                 case MapType.Body:
+                    ApplyScoreMask(x, y, BodyScore, BodyScale);
                     ApplyUnWalkableScore(x, y);
                     break;
                 case MapType.Tail:
@@ -346,13 +339,15 @@ namespace BattleSnake.Services
         {
             List<double> scores = new List<double>();
 
-            foreach (Coords move in Moves)
+            Coord head = player.body[0];
+
+            foreach (Coord move in Moves)
             {
                 int space = GetLastSpace(head + move);
 
-                if (space <= bodySize / 2)
+                if (space <= bodySize)
                 {
-                    scoreMap[head + move] += UnWalkableScore * (1 - space / (bodySize / 2));
+                    scoreMap[head + move] += UnWalkableScore * (1 - space / bodySize);
                 }
 
                 scores.Add(scoreMap[head + move]);
@@ -363,9 +358,9 @@ namespace BattleSnake.Services
             return Directions[index];
         }
 
-        private int GetLastSpace(Coords coords, int length = 0)
+        private int GetLastSpace(Coord coord, int length = 0)
         {
-            switch (walkMap[coords])
+            switch (walkMap[coord])
             {
                 case MapType.Space:
                     break;
@@ -382,29 +377,22 @@ namespace BattleSnake.Services
                     break;
             }
 
-            if (length > bodySize / 2)
+            if (length > bodySize)
             {
                 return length;
             }
 
-            MapType prev = walkMap[coords];
-            walkMap[coords] = MapType.Body;
-
-            Coords[] tail = player.body.TakeLast(2).ToArray();
-            MapType[] prevTail = { walkMap[tail[0]], walkMap[tail[1]] };
-            walkMap[tail[0]] = MapType.Tail;
-            walkMap[tail[1]] = MapType.Space;
+            MapType prev = walkMap[coord];
+            walkMap[coord] = MapType.Body;
 
             List<int> spaces = new List<int>();
 
-            foreach (Coords move in Moves)
+            foreach (Coord move in Moves)
             {
-                spaces.Add(GetLastSpace(coords + move, length + 1));
+                spaces.Add(GetLastSpace(coord + move, length + 1));
             }
 
-            walkMap[coords] = prev;
-            walkMap[tail[0]] = prevTail[0];
-            walkMap[tail[1]] = prevTail[1];
+            walkMap[coord] = prev;
 
             return spaces.Max();
         }

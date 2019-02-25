@@ -16,7 +16,7 @@ namespace BattleSnake.Controllers
     {
         // POST api/move
         [HttpPost]
-        public IActionResult Post([FromBody] SnakeRequest request)
+        public IActionResult Post([FromBody] GameRequest request)
         {
             IGame game = GameManager.Instance.GetGame(request.game.id);
 

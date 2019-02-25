@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace BattleSnake.Models
 {
-    public class SnakeRequest
+    public class GameRequest
     {
         public Game game;
         public int turn;
@@ -22,46 +22,40 @@ namespace BattleSnake.Models
     {
         public int height;
         public int width;
-        public List<Coords> food;
+        public List<Coord> food;
         public List<Snake> snakes;
     }
 
-    public class Coords
+    public class Coord
     {
         public int x;
         public int y;
 
-        public static readonly Coords Identity = new Coords { x = 1, y = 1 };
-        public static readonly Coords Up = new Coords { x = 0, y = -1 };
-        public static readonly Coords Down = new Coords { x = 0, y = 1 };
-        public static readonly Coords Left = new Coords { x = -1, y = 0 };
-        public static readonly Coords Right = new Coords { x = 1, y = 0 };
-
-        public static Coords operator +(Coords lhs, Coords rhs)
+        public static Coord operator +(Coord lhs, Coord rhs)
         {
-            return new Coords
+            return new Coord
             {
                 x = lhs.x + rhs.x,
                 y = lhs.y + rhs.y
             };
         }
 
-        public static bool operator ==(Coords lhs, Coords rhs)
+        public static bool operator ==(Coord lhs, Coord rhs)
         {
             return lhs.x == rhs.x && lhs.y == rhs.y;
         }
 
-        public static bool operator !=(Coords lhs, Coords rhs)
+        public static bool operator !=(Coord lhs, Coord rhs)
         {
             return lhs.x != rhs.x || lhs.y != rhs.y;
         }
 
         public override bool Equals(object obj)
         {
-            Coords coords = obj as Coords;
-            return coords != null &&
-                   x == coords.x &&
-                   y == coords.y;
+            Coord coord = obj as Coord;
+            return coord != null &&
+                   x == coord.x &&
+                   y == coord.y;
         }
 
         public override int GetHashCode()
@@ -75,6 +69,6 @@ namespace BattleSnake.Models
         public string id;
         public string name;
         public int health;
-        public List<Coords> body;
+        public List<Coord> body;
     }
 }

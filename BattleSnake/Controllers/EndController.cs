@@ -15,7 +15,7 @@ namespace BattleSnake.Controllers
     {
         // POST api/end
         [HttpPost]
-        public IActionResult Post([FromBody] SnakeRequest request)
+        public IActionResult Post([FromBody] GameRequest request)
         {
             GameManager.Instance.RemoveGame(request.game.id);
 

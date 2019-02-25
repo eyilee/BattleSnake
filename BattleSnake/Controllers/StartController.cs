@@ -17,7 +17,7 @@ namespace BattleSnake.Controllers
     {
         // POST api/start
         [HttpPost]
-        public IActionResult Post(string snake, [FromBody] SnakeRequest request)
+        public IActionResult Post(string snake, [FromBody] GameRequest request)
         {
             IGame game = null;
             string color = null;
@@ -35,8 +35,8 @@ namespace BattleSnake.Controllers
                 case "beta":
                     game = GameManager.Instance.CreateGame<BetaSnake>(request.game.id);
                     color = "#ee82ee";
-                    headType = "evil";
-                    tailType = "curled";
+                    headType = "bendr";
+                    tailType = "pixel";
                     break;
                 case "gamma":
                     break;

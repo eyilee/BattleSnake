@@ -54,14 +54,14 @@ namespace BattleSnake.Services
         private const int TailScale = 1;
 
         private Snake player;
-        private Coords head;
+        private Coord head;
         private int health;
         private int bodySize;
 
         private List<Snake> rivals;
-        private List<Coords> foods;
+        private List<Coord> foods;
 
-        public void Init(SnakeRequest request)
+        public void Init(GameRequest request)
         {
             width = request.board.width;
             height = request.board.height;
@@ -97,14 +97,14 @@ namespace BattleSnake.Services
             health = player.health;
             bodySize = player.body.Count;
 
-            foreach (Coords body in player.body)
+            foreach (Coord body in player.body)
             {
                 walkMap[body.x, body.y] = MapType.Body;
             }
 
             if (player.body.Count > 2)
             {
-                Coords[] tails = player.body.TakeLast(2).ToArray();
+                Coord[] tails = player.body.TakeLast(2).ToArray();
 
                 if (tails[0].x != tails[1].x || tails[0].y != tails[1].y)
                 {
@@ -142,7 +142,7 @@ namespace BattleSnake.Services
         {
             foreach (Snake rival in rivals)
             {
-                foreach (Coords body in rival.body)
+                foreach (Coord body in rival.body)
                 {
                     walkMap[body.x, body.y] = MapType.Body;
                 }
@@ -158,7 +158,7 @@ namespace BattleSnake.Services
 
                 if (rival.body.Count >= 2)
                 {
-                    Coords[] tails = rival.body.TakeLast(2).ToArray();
+                    Coord[] tails = rival.body.TakeLast(2).ToArray();
 
                     if (tails[0].x != tails[1].x || tails[0].y != tails[1].y)
                     {
@@ -170,7 +170,7 @@ namespace BattleSnake.Services
 
         private void SetFoods()
         {
-            foreach (Coords food in foods)
+            foreach (Coord food in foods)
             {
                 if (IsRaceFood(food.x, food.y))
                 {
@@ -220,7 +220,7 @@ namespace BattleSnake.Services
             return false;
         }
 
-        public string GetNextMove(SnakeRequest request)
+        public string GetNextMove(GameRequest request)
         {
             player = request.you;
             rivals = request.board.snakes.Where(x => x.id != player.id).ToList();

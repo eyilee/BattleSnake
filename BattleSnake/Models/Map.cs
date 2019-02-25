@@ -24,7 +24,7 @@ namespace BattleSnake.Models
             set { values[x, y] = value; }
         }
 
-        public T this[Coords coords] {
+        public T this[Coord coords] {
             get { return values[coords.x, coords.y]; }
             set { values[coords.x, coords.y] = value; }
         }
