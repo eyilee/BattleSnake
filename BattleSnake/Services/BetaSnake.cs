@@ -7,17 +7,18 @@ using System.Threading.Tasks;
 
 namespace BattleSnake.Services
 {
-    public class AlphaSnake : IGame
+    public class BetaSnake : IGame
     {
         private enum MapType
         {
             Space = 0,
-            Food,
-            RaceFood,
+            Wall,
             Head,
             WeakHead,
             Body,
-            Tail
+            Tail,
+            Food,
+            RaceFood
         }
 
         private static readonly string[] Directions = { "up", "down", "left", "right" };
@@ -63,26 +64,65 @@ namespace BattleSnake.Services
 
         public void Init(SnakeRequest request)
         {
-            width = request.board.width;
-            height = request.board.height;
+            width = request.board.width + 2;
+            height = request.board.height + 2;
             mapSize = (width + height) / 2;
 
             walkMap = new MapType[width, height];
             scoreMap = new double[width, height];
 
-            player = request.you;
-            rivals = request.board.snakes.Where(x => x.id != player.id).ToList();
-            foods = request.board.food;
+            SetData(request);
 
             UpdateMaps();
+        }
+
+        private void SetData(SnakeRequest request)
+        {
+            SetPlayer(request.you);
+            SetRivals(request.board.snakes);
+            SetFoods(request.board.food);
+        }
+
+        private void SetPlayer(Snake you)
+        {
+            player = you;
+
+            ShiftCoords(player.body);
+        }
+
+        private void SetRivals(List<Snake> snakes)
+        {
+            rivals = snakes.Where(x => x.id != player.id).ToList();
+
+            foreach (Snake rival in rivals)
+            {
+                ShiftCoords(rival.body);
+            }
+        }
+
+        private void SetFoods(List<Coords> food)
+        {
+            foods = food;
+
+            ShiftCoords(foods);
+        }
+
+        private void ShiftCoords(List<Coords> coords)
+        {
+            foreach (Coords coord in coords)
+            {
+                coord.x += 1;
+                coord.y += 1;
+            }
         }
 
         private void UpdateMaps()
         {
             ResetMaps();
-            SetPlayer();
-            SetRivals();
-            SetFoods();
+            UpdateWalls();
+            UpdatePlayer();
+            UpdateRivals();
+            UpdateFood();
         }
 
         private void ResetMaps()
@@ -91,7 +131,21 @@ namespace BattleSnake.Services
             Array.Clear(scoreMap, 0, scoreMap.Length);
         }
 
-        private void SetPlayer()
+        private void UpdateWalls()
+        {
+            for (int x = 0; x < width; x++)
+            {
+                for (int y = 0; y < height; y++)
+                {
+                    if (x == 0 || x == width - 1 || y == 0 || y == height - 1)
+                    {
+                        walkMap[x, y] = MapType.Wall;
+                    }
+                }
+            }
+        }
+
+        private void UpdatePlayer()
         {
             head = player.body[0];
             health = player.health;
@@ -138,7 +192,7 @@ namespace BattleSnake.Services
             }
         }
 
-        private void SetRivals()
+        private void UpdateRivals()
         {
             foreach (Snake rival in rivals)
             {
@@ -168,7 +222,7 @@ namespace BattleSnake.Services
             }
         }
 
-        private void SetFoods()
+        private void UpdateFood()
         {
             foreach (Coords food in foods)
             {
@@ -185,36 +239,13 @@ namespace BattleSnake.Services
 
         private bool IsRaceFood(int x, int y)
         {
-            if (y - 1 >= 0) // up
+            if (walkMap[x, y - 1] == MapType.Head ||
+                walkMap[x, y + 1] == MapType.Head ||
+                walkMap[x - 1, y] == MapType.Head ||
+                walkMap[x + 1, y] == MapType.Head
+                )
             {
-                if (walkMap[x, y - 1] == MapType.Head)
-                {
-                    return true;
-                }
-            }
-
-            if (y + 1 < height) // down
-            {
-                if (walkMap[x, y + 1] == MapType.Head)
-                {
-                    return true;
-                }
-            }
-
-            if (x - 1 >= 0) // left
-            {
-                if (walkMap[x - 1, y] == MapType.Head)
-                {
-                    return true;
-                }
-            }
-
-            if (x + 1 < width) // right
-            {
-                if (walkMap[x + 1, y] == MapType.Head)
-                {
-                    return true;
-                }
+                return true;
             }
 
             return false;
@@ -222,9 +253,7 @@ namespace BattleSnake.Services
 
         public string GetNextMove(SnakeRequest request)
         {
-            player = request.you;
-            rivals = request.board.snakes.Where(x => x.id != player.id).ToList();
-            foods = request.board.food;
+            SetData(request);
 
             UpdateMaps();
 
@@ -251,11 +280,8 @@ namespace BattleSnake.Services
                 case MapType.Space:
                     ApplyScoreMask(x, y, SpaceScore, SpaceScale);
                     break;
-                case MapType.Food:
-                    ApplyScoreMask(x, y, FoodScore, FoodScale);
-                    break;
-                case MapType.RaceFood:
-                    ApplyScoreMask(x, y, RaceFoodScore, RaceFoodScale);
+                case MapType.Wall:
+                    ApplyUnWalkableScore(x, y);
                     break;
                 case MapType.Head:
                     ApplyScoreMask(x, y, HeadScore, HeadScale);
@@ -270,6 +296,12 @@ namespace BattleSnake.Services
                     break;
                 case MapType.Tail:
                     ApplyScoreMask(x, y, TailScore, TailScale);
+                    break;
+                case MapType.Food:
+                    ApplyScoreMask(x, y, FoodScore, FoodScale);
+                    break;
+                case MapType.RaceFood:
+                    ApplyScoreMask(x, y, RaceFoodScore, RaceFoodScale);
                     break;
                 default:
                     break;
@@ -308,7 +340,7 @@ namespace BattleSnake.Services
 
             double[] score = { min, min, min, min };
 
-            if (head.y - 1 >= 0) // up
+            // up
             {
                 int space = GetLastSpace(head.x, head.y - 1);
 
@@ -320,7 +352,7 @@ namespace BattleSnake.Services
                 score[0] = scoreMap[head.x, head.y - 1];
             }
 
-            if (head.y + 1 < height) // down
+            // down
             {
                 int space = GetLastSpace(head.x, head.y + 1);
 
@@ -332,7 +364,7 @@ namespace BattleSnake.Services
                 score[1] = scoreMap[head.x, head.y + 1];
             }
 
-            if (head.x - 1 >= 0) // left
+            // left
             {
                 int space = GetLastSpace(head.x - 1, head.y);
 
@@ -344,7 +376,7 @@ namespace BattleSnake.Services
                 score[2] = scoreMap[head.x - 1, head.y];
             }
 
-            if (head.x + 1 < width) // right
+            // right
             {
                 int space = GetLastSpace(head.x + 1, head.y);
 
@@ -365,22 +397,18 @@ namespace BattleSnake.Services
 
         private int GetLastSpace(int x, int y, int length = 0)
         {
-            if (x < 0 || x >= width || y < 0 || y >= height)
-            {
-                return length;
-            }
-
             switch (walkMap[x, y])
             {
                 case MapType.Space:
-                case MapType.Food:
-                case MapType.RaceFood:
                     break;
+                case MapType.Wall:
                 case MapType.Head:
                 case MapType.WeakHead:
                 case MapType.Body:
                     return length;
                 case MapType.Tail:
+                case MapType.Food:
+                case MapType.RaceFood:
                     break;
                 default:
                     break;

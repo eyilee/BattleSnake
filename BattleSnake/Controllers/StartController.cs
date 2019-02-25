@@ -20,13 +20,23 @@ namespace BattleSnake.Controllers
         public IActionResult Post(string snake, [FromBody] SnakeRequest request)
         {
             IGame game = null;
-
+            string color = null;
+            string headType = null;
+            string tailType = null;
+            
             switch (snake)
             {
                 case "alpha":
                     game = GameManager.Instance.CreateGame<AlphaSnake>(request.game.id);
+                    color = "#66ccff";
+                    headType = "bendr";
+                    tailType = "pixel";
                     break;
                 case "beta":
+                    game = GameManager.Instance.CreateGame<BetaSnake>(request.game.id);
+                    color = "#ee82ee";
+                    headType = "evil";
+                    tailType = "curled";
                     break;
                 case "gamma":
                     break;
@@ -43,9 +53,9 @@ namespace BattleSnake.Controllers
 
             StartResponse response = new StartResponse
             {
-                color = "#66ccff",
-                headType = "bendr",
-                tailType = "pixel"
+                color = color,
+                headType = headType,
+                tailType = tailType
             };
 
             return Ok(response);
