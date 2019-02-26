@@ -47,7 +47,7 @@ namespace BattleSnake.Services
         private Map<double> scoreMap;
 
         private const double SpaceScore = 5;
-        private const int SpaceScale = 1;
+        private const int SpaceScale = 2;
 
         private double FoodScore;
         private int FoodScale;
@@ -67,8 +67,8 @@ namespace BattleSnake.Services
         private const double MyBodyScore = -1;
         private const int MyBodyScale = 1;
 
-        private const double TailScore = 3;
-        private const int TailScale = 1;
+        private const double TailScore = 5;
+        private const int TailScale = 2;
 
         private Snake player;
         private int bodySize;
@@ -113,27 +113,27 @@ namespace BattleSnake.Services
 
             if (player.health < 30)
             {
-                FoodScore = 36;
+                FoodScore = 48;
                 FoodScale = 4;
             }
             else if (player.health < 60)
             {
-                FoodScore = 12;
+                FoodScore = 24;
                 FoodScale = 3;
             }
             else
             {
-                FoodScore = 4;
+                FoodScore = 12;
                 FoodScale = 2;
             }
 
             if (bodySize < mapSize / 2)
             {
-                FoodScore *= 6;
+                FoodScore *= 3;
             }
             else if (bodySize < mapSize)
             {
-                FoodScore *= 3;
+                FoodScore *= 2;
             }
         }
 
