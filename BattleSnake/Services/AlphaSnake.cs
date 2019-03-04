@@ -9,228 +9,183 @@ namespace BattleSnake.Services
 {
     public class AlphaSnake : IGame
     {
+        public string NextMove { get; set; }
+
         private enum MapType
         {
-            Space = 0,
-            Food,
-            RaceFood,
+            Space,
+            Wall,
             Head,
-            WeakHead,
             Body,
-            Tail
+            Tail,
+            Food,
         }
 
-        private static readonly string[] Directions = { "up", "down", "left", "right" };
+        private static readonly string[] Directions = {
+            "up",
+            "down",
+            "left",
+            "right"
+        };
 
-        private const double Sqrt2 = 1.415;
-        private const double UnWalkableScore = -200;
+        private const int LastSpaceScore = -200;
 
         private int width;
         private int height;
         private int mapSize;
 
-        private MapType[,] walkMap;
-        private double[,] scoreMap;
+        private Map<MapType> walkMap;
+        private Map<double> scoreMap;
 
-        private const double SpaceScore = 3;
-        private const int SpaceScale = 1;
+        private const int SpaceScore = 5;
+        private const int SpaceScale = 2;
 
-        private double FoodScore;
-        private int FoodScale;
+        private const int HeadScore = -24;
+        private const int HeadScale = 2;
 
-        private const double RaceFoodScore = -48;
-        private const int RaceFoodScale = 1;
-
-        private const double HeadScore = -144;
-        private const int HeadScale = 1;
-
-        private const double WeakHeadScore = 48;
-        private const int WeakHeadScale = 1;
-
-        private const double BodyScore = -3;
+        private const int BodyScore = -3;
         private const int BodyScale = 1;
 
-        private const double TailScore = 3;
+        private const int TailScore = 3;
         private const int TailScale = 1;
 
-        private Snake player;
-        private Coord head;
-        private int health;
-        private int bodySize;
+        private const int FoodScore = 24;
+        private const int FoodScale = 2;
 
-        private List<Snake> rivals;
-        private List<Coord> foods;
+        private Snake player;
+        private List<Snake> snakes;
+        private List<Coord> food;
 
         public void Init(GameRequest request)
         {
-            width = request.board.width;
-            height = request.board.height;
-            mapSize = (width + height) / 2;
+            width = request.board.width + 2;
+            height = request.board.height + 2;
+            mapSize = request.board.width * request.board.height;
 
-            walkMap = new MapType[width, height];
-            scoreMap = new double[width, height];
-
-            player = request.you;
-            rivals = request.board.snakes.Where(x => x.id != player.id).ToList();
-            foods = request.board.food;
-
-            UpdateMaps();
+            walkMap = new Map<MapType>(width, height);
+            scoreMap = new Map<double>(width, height);
         }
 
-        private void UpdateMaps()
+        public void Update(GameRequest request)
         {
-            ResetMaps();
-            SetPlayer();
-            SetRivals();
-            SetFoods();
+            SetPlayer(request.you);
+            SetSnakes(request.board.snakes);
+            SetFood(request.board.food);
+
+            ClearMaps();
+
+            SetWallsOnMap();
+            SetPlayerOnMap();
+            SetSnakesOnMap();
+            SetFoodOnMap();
+
+            CalculateScoreMap();
+
+            SetNextMove();
         }
 
-        private void ResetMaps()
+        private void SetPlayer(Snake player)
         {
-            Array.Clear(walkMap, 0, walkMap.Length);
-            Array.Clear(scoreMap, 0, scoreMap.Length);
-        }
-
-        private void SetPlayer()
-        {
-            head = player.body[0];
-            health = player.health;
-            bodySize = player.body.Count;
-
-            foreach (Coord body in player.body)
+            for (int i = 0; i < player.body.Count; i++)
             {
-                walkMap[body.x, body.y] = MapType.Body;
+                player.body[i] += MapMove.Identity;
             }
 
-            if (player.body.Count > 2)
-            {
-                Coord[] tails = player.body.TakeLast(2).ToArray();
+            this.player = player;
+        }
 
-                if (tails[0].x != tails[1].x || tails[0].y != tails[1].y)
+        private void SetSnakes(List<Snake> snakes)
+        {
+            for (int i = 0; i < snakes.Count; i++)
+            {
+                for (int j = 0; j < snakes[i].body.Count; j++)
                 {
-                    walkMap[tails[1].x, tails[1].y] = MapType.Tail;
+                    snakes[i].body[j] += MapMove.Identity;
                 }
             }
 
-            if (health < 30)
-            {
-                FoodScore = 36;
-                FoodScale = 4;
-            }
-            else if (health < 60)
-            {
-                FoodScore = 12;
-                FoodScale = 2;
-            }
-            else
-            {
-                FoodScore = SpaceScore;
-                FoodScale = SpaceScale;
-            }
-
-            if (bodySize < mapSize / 2)
-            {
-                FoodScore = FoodScore * 4;
-            }
-            else if (bodySize < mapSize)
-            {
-                FoodScore = FoodScore * 2;
-            }
+            this.snakes = snakes.Where(x => x.id != player.id).ToList();
         }
 
-        private void SetRivals()
+        private void SetFood(List<Coord> food)
         {
-            foreach (Snake rival in rivals)
+            for (int i = 0; i < food.Count; i++)
             {
-                foreach (Coord body in rival.body)
-                {
-                    walkMap[body.x, body.y] = MapType.Body;
-                }
+                food[i] += MapMove.Identity;
+            }
 
-                if (rival.body.Count >= player.body.Count)
-                {
-                    walkMap[rival.body[0].x, rival.body[0].y] = MapType.Head;
-                }
-                else
-                {
-                    walkMap[rival.body[0].x, rival.body[0].y] = MapType.WeakHead;
-                }
+            this.food = food;
+        }
 
-                if (rival.body.Count >= 2)
-                {
-                    Coord[] tails = rival.body.TakeLast(2).ToArray();
+        private void ClearMaps()
+        {
+            walkMap.Clear();
+            scoreMap.Clear();
+        }
 
-                    if (tails[0].x != tails[1].x || tails[0].y != tails[1].y)
+        private void SetWallsOnMap()
+        {
+            for (int x = 0; x < width; x++)
+            {
+                for (int y = 0; y < height; y++)
+                {
+                    if (x == 0 || x == width - 1 || y == 0 || y == height - 1)
                     {
-                        walkMap[tails[1].x, tails[1].y] = MapType.Tail;
+                        walkMap[x, y] = MapType.Wall;
                     }
                 }
             }
         }
 
-        private void SetFoods()
+        private void SetPlayerOnMap()
         {
-            foreach (Coord food in foods)
+            foreach (Coord body in player.body)
             {
-                if (IsRaceFood(food.x, food.y))
+                walkMap[body] = MapType.Body;
+            }
+
+            walkMap[player.body[0]] = MapType.Head;
+
+            if (player.body.Count >= 3)
+            {
+                Coord[] tails = player.body.TakeLast(2).ToArray();
+
+                if (tails[0] != tails[1])
                 {
-                    walkMap[food.x, food.y] = MapType.RaceFood;
-                }
-                else
-                {
-                    walkMap[food.x, food.y] = MapType.Food;
+                    walkMap[tails[1]] = MapType.Tail;
                 }
             }
         }
 
-        private bool IsRaceFood(int x, int y)
+        private void SetSnakesOnMap()
         {
-            if (y - 1 >= 0) // up
+            foreach (Snake snake in snakes)
             {
-                if (walkMap[x, y - 1] == MapType.Head)
+                foreach (Coord body in snake.body)
                 {
-                    return true;
+                    walkMap[body] = MapType.Body;
+                }
+
+                walkMap[snake.body[0]] = MapType.Head;
+
+                if (snake.body.Count >= 2)
+                {
+                    Coord[] tails = snake.body.TakeLast(2).ToArray();
+
+                    if (tails[0] != tails[1])
+                    {
+                        walkMap[tails[1]] = MapType.Tail;
+                    }
                 }
             }
-
-            if (y + 1 < height) // down
-            {
-                if (walkMap[x, y + 1] == MapType.Head)
-                {
-                    return true;
-                }
-            }
-
-            if (x - 1 >= 0) // left
-            {
-                if (walkMap[x - 1, y] == MapType.Head)
-                {
-                    return true;
-                }
-            }
-
-            if (x + 1 < width) // right
-            {
-                if (walkMap[x + 1, y] == MapType.Head)
-                {
-                    return true;
-                }
-            }
-
-            return false;
         }
 
-        public string GetNextMove(GameRequest request)
+        private void SetFoodOnMap()
         {
-            player = request.you;
-            rivals = request.board.snakes.Where(x => x.id != player.id).ToList();
-            foods = request.board.food;
-
-            UpdateMaps();
-
-            CalculateScoreMap();
-
-            return GetDirection();
+            foreach (Coord food in food)
+            {
+                walkMap[food] = MapType.Food;
+            }
         }
 
         private void CalculateScoreMap()
@@ -239,170 +194,178 @@ namespace BattleSnake.Services
             {
                 for (int y = 0; y < height; y++)
                 {
-                    CalculateWalkableScore(x, y);
+                    CalculateMapScoreAt(x, y);
                 }
             }
+
+            CalculateLastSpaceScore();
         }
 
-        private void CalculateWalkableScore(int x, int y)
+        private void CalculateMapScoreAt(int x, int y)
         {
             switch (walkMap[x, y])
             {
                 case MapType.Space:
                     ApplyScoreMask(x, y, SpaceScore, SpaceScale);
                     break;
-                case MapType.Food:
-                    ApplyScoreMask(x, y, FoodScore, FoodScale);
-                    break;
-                case MapType.RaceFood:
-                    ApplyScoreMask(x, y, RaceFoodScore, RaceFoodScale);
+                case MapType.Wall:
+                    ApplyUnWalkableScore(x, y);
                     break;
                 case MapType.Head:
                     ApplyScoreMask(x, y, HeadScore, HeadScale);
                     ApplyUnWalkableScore(x, y);
                     break;
-                case MapType.WeakHead:
-                    ApplyScoreMask(x, y, WeakHeadScore, WeakHeadScale);
-                    ApplyUnWalkableScore(x, y);
-                    break;
                 case MapType.Body:
+                    ApplyScoreMask(x, y, BodyScore, BodyScale);
                     ApplyUnWalkableScore(x, y);
                     break;
                 case MapType.Tail:
                     ApplyScoreMask(x, y, TailScore, TailScale);
                     break;
+                case MapType.Food:
+                    ApplyScoreMask(x, y, FoodScore, FoodScale);
+                    break;
                 default:
                     break;
             }
         }
 
-        private void ApplyScoreMask(int x, int y, double score, int range)
+        private void ApplyScoreMask(int x, int y, double score, int scale)
         {
-            int up = Math.Max(y - range, 0);
-            int down = Math.Min(y + range, height - 1);
-            int left = Math.Max(x - range, 0);
-            int right = Math.Min(x + range, width - 1);
+            Dictionary<Coord, int> distances = new Dictionary<Coord, int>();
 
-            for (int i = left; i <= right; i++)
+            Coord coord = new Coord { x = x, y = y };
+            distances.Add(coord, 0);
+
+            GetDistance(coord + MapMove.Up, scale, distances);
+            GetDistance(coord + MapMove.Down, scale, distances);
+            GetDistance(coord + MapMove.Left, scale, distances);
+            GetDistance(coord + MapMove.Right, scale, distances);
+
+            foreach (KeyValuePair<Coord, int> item in distances)
             {
-                for (int j = up; j <= down; j++)
-                {
-                    double distance = Math.Sqrt((i - x) * (i - x) + (j - y) * (j - y));
+                scoreMap[item.Key] += score * (1 - (item.Value / (scale + 1)));
+            }
+        }
 
-                    if (distance <= range * Sqrt2)
-                    {
-                        scoreMap[i, j] += score * (1 - distance / (range * Sqrt2));
-                    }
+        private void GetDistance(Coord coord, int scale, Dictionary<Coord, int> distances, int length = 1)
+        {
+            switch (walkMap[coord])
+            {
+                case MapType.Space:
+                    break;
+                case MapType.Wall:
+                case MapType.Head:
+                case MapType.Body:
+                    return;
+                case MapType.Tail:
+                case MapType.Food:
+                    break;
+                default:
+                    break;
+            }
+
+            if (length > scale)
+            {
+                return;
+            }
+
+            if (distances.ContainsKey(coord))
+            {
+                if (length < distances[coord])
+                {
+                    distances[coord] = length;
                 }
             }
+            else
+            {
+                distances.Add(coord, length);
+            }
+
+            GetDistance(coord + MapMove.Up, scale, distances, length + 1);
+            GetDistance(coord + MapMove.Down, scale, distances, length + 1);
+            GetDistance(coord + MapMove.Left, scale, distances, length + 1);
+            GetDistance(coord + MapMove.Right, scale, distances, length + 1);
         }
 
         private void ApplyUnWalkableScore(int x, int y)
         {
-            scoreMap[x, y] += UnWalkableScore;
+            scoreMap[x, y] = double.NegativeInfinity;
         }
 
-        private string GetDirection()
+        private void CalculateLastSpaceScore()
         {
-            double min = scoreMap.Cast<double>().Min();
+            Coord head = player.body[0];
 
-            double[] score = { min, min, min, min };
-
-            if (head.y - 1 >= 0) // up
-            {
-                int space = GetLastSpace(head.x, head.y - 1);
-
-                if (space <= bodySize / 2)
-                {
-                    scoreMap[head.x, head.y - 1] += UnWalkableScore * (1 - space / (bodySize / 2));
-                }
-
-                score[0] = scoreMap[head.x, head.y - 1];
-            }
-
-            if (head.y + 1 < height) // down
-            {
-                int space = GetLastSpace(head.x, head.y + 1);
-
-                if (space <= bodySize / 2)
-                {
-                    scoreMap[head.x, head.y + 1] += UnWalkableScore * (1 - space / (bodySize / 2));
-                }
-
-                score[1] = scoreMap[head.x, head.y + 1];
-            }
-
-            if (head.x - 1 >= 0) // left
-            {
-                int space = GetLastSpace(head.x - 1, head.y);
-
-                if (space <= bodySize / 2)
-                {
-                    scoreMap[head.x - 1, head.y] += UnWalkableScore * (1 - space / (bodySize / 2));
-                }
-
-                score[2] = scoreMap[head.x - 1, head.y];
-            }
-
-            if (head.x + 1 < width) // right
-            {
-                int space = GetLastSpace(head.x + 1, head.y);
-
-                if (space <= bodySize / 2)
-                {
-                    scoreMap[head.x + 1, head.y] += UnWalkableScore * (1 - space / (bodySize / 2));
-                }
-
-                score[3] = scoreMap[head.x + 1, head.y];
-            }
-
-            double max = score.Cast<double>().Max();
-
-            int index = Array.FindIndex(score, x => x == max);
-
-            return Directions[index];
+            CalculateLastSpaceScoreAt(head + MapMove.Up);
+            CalculateLastSpaceScoreAt(head + MapMove.Down);
+            CalculateLastSpaceScoreAt(head + MapMove.Left);
+            CalculateLastSpaceScoreAt(head + MapMove.Right);
         }
 
-        private int GetLastSpace(int x, int y, int length = 0)
+        private void CalculateLastSpaceScoreAt(Coord coord)
         {
-            if (x < 0 || x >= width || y < 0 || y >= height)
-            {
-                return length;
-            }
+            int space = GetLastSpace(coord);
 
-            switch (walkMap[x, y])
+            if (space < player.body.Count / 2)
+            {
+                scoreMap[coord] += LastSpaceScore * (1 - (space / (player.body.Count / 2)));
+            }
+        }
+
+        private int GetLastSpace(Coord coord, int length = 0)
+        {
+            switch (walkMap[coord])
             {
                 case MapType.Space:
-                case MapType.Food:
-                case MapType.RaceFood:
                     break;
+                case MapType.Wall:
                 case MapType.Head:
-                case MapType.WeakHead:
                 case MapType.Body:
                     return length;
                 case MapType.Tail:
+                case MapType.Food:
                     break;
                 default:
                     break;
             }
 
-            if (length > bodySize / 2)
+            if (length >= player.body.Count / 2)
             {
                 return length;
             }
 
-            MapType prev = walkMap[x, y];
-            walkMap[x, y] = MapType.Body;
+            MapType prev = walkMap[coord];
+            walkMap[coord] = MapType.Body;
 
-            int[] spaces = { 0, 0, 0, 0 };
-            spaces[0] = GetLastSpace(x, y + 1, length + 1);
-            spaces[1] = GetLastSpace(x, y - 1, length + 1);
-            spaces[2] = GetLastSpace(x - 1, y, length + 1);
-            spaces[3] = GetLastSpace(x + 1, y, length + 1);
+            List<int> spaces = new List<int>
+            {
+                GetLastSpace(coord + MapMove.Up, length + 1),
+                GetLastSpace(coord + MapMove.Down, length + 1),
+                GetLastSpace(coord + MapMove.Left, length + 1),
+                GetLastSpace(coord + MapMove.Right, length + 1)
+            };
 
-            walkMap[x, y] = prev;
+            walkMap[coord] = prev;
 
-            return spaces.Cast<int>().Max();
+            return spaces.Max();
+        }
+
+        private void SetNextMove()
+        {
+            Coord head = player.body[0];
+
+            List<double> scores = new List<double>
+            {
+                scoreMap[head + MapMove.Up],
+                scoreMap[head + MapMove.Down],
+                scoreMap[head + MapMove.Left],
+                scoreMap[head + MapMove.Right]
+            };
+
+            int index = scores.IndexOf(scores.Max());
+
+            NextMove = Directions[index];
         }
     }
 }

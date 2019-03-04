@@ -9,6 +9,8 @@ namespace BattleSnake.Services
 {
     public class BetaSnake : IGame
     {
+        public string NextMove { get; set; }
+
         private enum MapType
         {
             Space = 0,
@@ -88,17 +90,22 @@ namespace BattleSnake.Services
             Update(request);
         }
 
-        private void Update(GameRequest request)
+        public void Update(GameRequest request)
         {
             SetPlayer(request.you);
             SetSnakes(request.board.snakes);
             SetFoods(request.board.food);
 
             ResetMaps();
+
             UpdateWalls();
             UpdatePlayer();
             UpdateSnakes();
             UpdateFoods();
+
+            CalculateScoreMap();
+
+            SetNextMove();
         }
 
         private void SetPlayer(Snake player)
@@ -257,15 +264,6 @@ namespace BattleSnake.Services
             return false;
         }
 
-        public string GetNextMove(GameRequest request)
-        {
-            Update(request);
-
-            CalculateScoreMap();
-
-            return GetDirection();
-        }
-
         private void CalculateScoreMap()
         {
             for (int x = 0; x < width; x++)
@@ -341,6 +339,11 @@ namespace BattleSnake.Services
         private void ApplyUnWalkableScore(int x, int y)
         {
             scoreMap[x, y] += UnWalkableScore;
+        }
+
+        private void SetNextMove()
+        {
+            NextMove = GetDirection();
         }
 
         private string GetDirection()

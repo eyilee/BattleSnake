@@ -7,36 +7,47 @@ namespace BattleSnake.Models
 {
     public class Map<T>
     {
-        private T[,] values;
+        private T[,] map;
+
+        public int Width { get; }
+        public int Height { get; }
 
         public Map(int width, int height)
         {
-            values = new T[width, height];
+            Width = width;
+            Height = height;
+            map = new T[width, height];
         }
 
         public void Clear()
         {
-            Array.Clear(values, 0, values.Length);
+            for (int i = 0; i < Width; i++)
+            {
+                for (int j = 0; j < Height; j++)
+                {
+                    map[i, j] = default(T);
+                }
+            }
         }
 
         public T Min()
         {
-            return values.Cast<T>().Min();
+            return map.Cast<T>().Min();
         }
 
         public T Max()
         {
-            return values.Cast<T>().Max();
+            return map.Cast<T>().Max();
         }
 
         public T this[int x, int y] {
-            get { return values[x, y]; }
-            set { values[x, y] = value; }
+            get { return map[x, y]; }
+            set { map[x, y] = value; }
         }
 
-        public T this[Coord coords] {
-            get { return values[coords.x, coords.y]; }
-            set { values[coords.x, coords.y] = value; }
+        public T this[Coord coord] {
+            get { return map[coord.x, coord.y]; }
+            set { map[coord.x, coord.y] = value; }
         }
     }
 }
