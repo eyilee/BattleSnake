@@ -42,12 +42,22 @@ namespace BattleSnake.Models
 
         public static bool operator ==(Coord lhs, Coord rhs)
         {
-            return rhs == null || (lhs.x == rhs.x && lhs.y == rhs.y);
+            if (rhs is null)
+            {
+                return lhs is null;
+            }
+            else if (lhs is null)
+            {
+                return rhs is null;
+            }
+
+            return lhs.x == rhs.x && lhs.y == rhs.y;
         }
+
 
         public static bool operator !=(Coord lhs, Coord rhs)
         {
-            return rhs != null || lhs.x != rhs.x || lhs.y != rhs.y;
+            return !(lhs == rhs);
         }
 
         public override bool Equals(object obj)
