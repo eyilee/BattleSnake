@@ -11,14 +11,19 @@ namespace BattleSnake.Services
     {
         public string NextMove { get; set; }
 
+        // TODO: add walkabe and unwalkabe types to reduce conditions
         private enum MapType
         {
             Space,
             Wall,
             Head,
+            PlayerHead,
+            WeakHead,
             Body,
+            PlayerBody,
             Tail,
             Food,
+            RaceFood
         }
 
         private static readonly string[] Directions = {
@@ -28,7 +33,37 @@ namespace BattleSnake.Services
             "right"
         };
 
-        private const int LastSpaceScore = -200;
+        // TODO: modify values by board state
+        private const double IdentityScore = 3;
+
+        private const double LastSpaceScore = -200;
+
+        private const double SpaceScore = 3;
+        private const int SpaceScale = 3;
+
+        private const double HeadScore = -30;
+        private const int HeadScale = 1;
+
+        private const double PlayerHeadScore = 3;
+        private const int PlayerHeadScale = 3;
+
+        private const double WeakHeadScore = 3;
+        private const int WeakHeadScale = 3;
+
+        private const double BodyScore = -1;
+        private const int BodyScale = 1;
+
+        private const double PlayerBodyScore = -1;
+        private const int PlayerBodyScale = 1;
+
+        private const double TailScore = 3;
+        private const int TailScale = 3;
+
+        private double FoodScore = 12;
+        private int FoodScale = 3;
+
+        private const double RaceFoodScore = -15;
+        private const int RaceFoodScale = 1;
 
         private int width;
         private int height;
@@ -36,21 +71,6 @@ namespace BattleSnake.Services
 
         private Map<MapType> walkMap;
         private Map<double> scoreMap;
-
-        private const int SpaceScore = 5;
-        private const int SpaceScale = 2;
-
-        private const int HeadScore = -24;
-        private const int HeadScale = 2;
-
-        private const int BodyScore = -3;
-        private const int BodyScale = 1;
-
-        private const int TailScore = 3;
-        private const int TailScale = 1;
-
-        private const int FoodScore = 24;
-        private const int FoodScale = 2;
 
         private Snake player;
         private List<Snake> snakes;
@@ -78,6 +98,8 @@ namespace BattleSnake.Services
             SetPlayerOnMap();
             SetSnakesOnMap();
             SetFoodOnMap();
+
+            SetOptions();
 
             CalculateScoreMap();
 
@@ -141,10 +163,10 @@ namespace BattleSnake.Services
         {
             foreach (Coord body in player.body)
             {
-                walkMap[body] = MapType.Body;
+                walkMap[body] = MapType.PlayerBody;
             }
 
-            walkMap[player.body[0]] = MapType.Head;
+            walkMap[player.body[0]] = MapType.PlayerHead;
 
             if (player.body.Count >= 3)
             {
@@ -166,7 +188,14 @@ namespace BattleSnake.Services
                     walkMap[body] = MapType.Body;
                 }
 
-                walkMap[snake.body[0]] = MapType.Head;
+                if (snake.body.Count < player.body.Count)
+                {
+                    walkMap[snake.body[0]] = MapType.WeakHead;
+                }
+                else
+                {
+                    walkMap[snake.body[0]] = MapType.Head;
+                }
 
                 if (snake.body.Count >= 2)
                 {
@@ -184,7 +213,47 @@ namespace BattleSnake.Services
         {
             foreach (Coord food in food)
             {
-                walkMap[food] = MapType.Food;
+                if (walkMap[food + MapMove.Up] == MapType.Head ||
+                    walkMap[food + MapMove.Down] == MapType.Head ||
+                    walkMap[food + MapMove.Left] == MapType.Head ||
+                    walkMap[food + MapMove.Right] == MapType.Head)
+                {
+                    walkMap[food] = MapType.RaceFood;
+                }
+                else
+                {
+                    walkMap[food] = MapType.Food;
+                }
+            }
+        }
+
+        // TODO: modify values by board state
+        private void SetOptions()
+        {
+            if (player.health < 30)
+            {
+                FoodScore = 36;
+                FoodScale = 5;
+            }
+            else if (player.health < 60)
+            {
+                FoodScore = 24;
+                FoodScale = 4;
+            }
+            else
+            {
+                FoodScore = 12;
+                FoodScale = 3;
+            }
+
+            foreach (Snake snake in snakes)
+            {
+                if (player.body.Count <= snake.body.Count)
+                {
+                    FoodScore += 12;
+                    FoodScale += 1;
+                    break;
+                }
             }
         }
 
@@ -215,8 +284,19 @@ namespace BattleSnake.Services
                     ApplyScoreMask(x, y, HeadScore, HeadScale);
                     ApplyUnWalkableScore(x, y);
                     break;
+                case MapType.PlayerHead:
+                    ApplyScoreMask(x, y, PlayerHeadScore, PlayerHeadScale);
+                    ApplyUnWalkableScore(x, y);
+                    break;
+                case MapType.WeakHead:
+                    ApplyScoreMask(x, y, WeakHeadScore, WeakHeadScale);
+                    break;
                 case MapType.Body:
                     ApplyScoreMask(x, y, BodyScore, BodyScale);
+                    ApplyUnWalkableScore(x, y);
+                    break;
+                case MapType.PlayerBody:
+                    ApplyScoreMask(x, y, PlayerBodyScore, PlayerBodyScale);
                     ApplyUnWalkableScore(x, y);
                     break;
                 case MapType.Tail:
@@ -224,6 +304,9 @@ namespace BattleSnake.Services
                     break;
                 case MapType.Food:
                     ApplyScoreMask(x, y, FoodScore, FoodScale);
+                    break;
+                case MapType.RaceFood:
+                    ApplyScoreMask(x, y, RaceFoodScore, RaceFoodScale);
                     break;
                 default:
                     break;
@@ -244,8 +327,13 @@ namespace BattleSnake.Services
 
             foreach (KeyValuePair<Coord, int> item in distances)
             {
-                scoreMap[item.Key] += score * (1 - (item.Value / (scale + 1)));
+                scoreMap[item.Key] += score * (1 - ((double)item.Value / (scale + 1)));
             }
+        }
+
+        private void ApplyUnWalkableScore(int x, int y)
+        {
+            scoreMap[x, y] = double.NegativeInfinity;
         }
 
         private void GetDistance(Coord coord, int scale, Dictionary<Coord, int> distances, int length = 1)
@@ -256,10 +344,14 @@ namespace BattleSnake.Services
                     break;
                 case MapType.Wall:
                 case MapType.Head:
+                case MapType.PlayerHead:
+                case MapType.WeakHead:
                 case MapType.Body:
-                    return;
+                case MapType.PlayerBody:
                 case MapType.Tail:
+                    return;
                 case MapType.Food:
+                case MapType.RaceFood:
                     break;
                 default:
                     break;
@@ -288,11 +380,6 @@ namespace BattleSnake.Services
             GetDistance(coord + MapMove.Right, scale, distances, length + 1);
         }
 
-        private void ApplyUnWalkableScore(int x, int y)
-        {
-            scoreMap[x, y] = double.NegativeInfinity;
-        }
-
         private void CalculateLastSpaceScore()
         {
             Coord head = player.body[0];
@@ -309,7 +396,7 @@ namespace BattleSnake.Services
 
             if (space < player.body.Count / 2)
             {
-                scoreMap[coord] += LastSpaceScore * (1 - (space / (player.body.Count / 2)));
+                scoreMap[coord] += LastSpaceScore * (1 - ((double)space / (player.body.Count / 2)));
             }
         }
 
@@ -321,10 +408,14 @@ namespace BattleSnake.Services
                     break;
                 case MapType.Wall:
                 case MapType.Head:
+                case MapType.PlayerHead:
+                case MapType.WeakHead:
                 case MapType.Body:
+                case MapType.PlayerBody:
                     return length;
                 case MapType.Tail:
                 case MapType.Food:
+                case MapType.RaceFood:
                     break;
                 default:
                     break;

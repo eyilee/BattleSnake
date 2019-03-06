@@ -30,16 +30,6 @@ namespace BattleSnake.Models
             }
         }
 
-        public T Min()
-        {
-            return map.Cast<T>().Min();
-        }
-
-        public T Max()
-        {
-            return map.Cast<T>().Max();
-        }
-
         public T this[int x, int y] {
             get { return map[x, y]; }
             set { map[x, y] = value; }
