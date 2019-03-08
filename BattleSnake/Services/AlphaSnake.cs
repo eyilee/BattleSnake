@@ -14,16 +14,16 @@ namespace BattleSnake.Services
         private enum MapType
         {
             None = 0,
-            Space = 1,
-            Wall = 2,
-            Head = 4,
-            PlayerHead = 8,
-            WeakHead = 16,
-            Body = 32,
-            PlayerBody = 64,
-            Tail = 128,
-            Food = 256,
-            RaceFood = 512,
+            Space = 0b0000_0000_0001,
+            Wall = 0b0000_0000_0010,
+            Head = 0b0000_0000_0100,
+            PlayerHead = 0b0000_0000_1000,
+            WeakHead = 0b0000_0001_0000,
+            Body = 0b0000_0010_0000,
+            PlayerBody = 0b0000_0100_0000,
+            Tail = 0b0000_1000_0000,
+            Food = 0b0001_0000_0000,
+            RaceFood = 0b0010_0000_0000,
             Walkable = Space | Tail | Food | RaceFood,
             UnWalkable = Wall | Head | PlayerHead | WeakHead | Body | PlayerBody
         }
@@ -36,36 +36,30 @@ namespace BattleSnake.Services
         };
 
         // TODO: modify values by board state
-        private const double IdentityScore = 3;
+        private readonly double[] ScaleFactor = { 1, 2, 10 / 3, 5, 37 / 5, 56 / 6 };
+
+        private const int IdentityScale = 3;
+        private const double IdentityScore = 5;
 
         private const double LastSpaceScore = -200;
 
-        private const double SpaceScore = 3;
-        private const int SpaceScale = 3;
+        private const int WalkableScale = IdentityScale;
+        private const double WalkableScore = IdentityScore;
 
-        private const double HeadScore = -30;
         private const int HeadScale = 1;
+        private const double HeadScore = LastSpaceScore;
 
-        private const double PlayerHeadScore = 3;
-        private const int PlayerHeadScale = 3;
+        private const int WeakHeadScale = 1;
+        private const double WeakHeadScore = IdentityScore;
 
-        private const double WeakHeadScore = 3;
-        private const int WeakHeadScale = 3;
-
-        private const double BodyScore = -1;
-        private const int BodyScale = 1;
-
-        private const double PlayerBodyScore = -1;
         private const int PlayerBodyScale = 1;
+        private const double PlayerBodyScore = IdentityScore;
 
-        private const double TailScore = 3;
-        private const int TailScale = 3;
+        private int FoodScale;
+        private double FoodScore;
 
-        private double FoodScore = 12;
-        private int FoodScale = 3;
-
-        private const double RaceFoodScore = -15;
-        private const int RaceFoodScale = 1;
+        private const int RaceFoodScale = 0;
+        private const double RaceFoodScore = LastSpaceScore;
 
         private int width;
         private int height;
@@ -94,7 +88,7 @@ namespace BattleSnake.Services
             SetSnakes(request.board.snakes);
             SetFood(request.board.food);
 
-            ClearMaps();
+            ResetMaps();
 
             SetWallsOnMap();
             SetPlayerOnMap();
@@ -141,7 +135,7 @@ namespace BattleSnake.Services
             this.food = food;
         }
 
-        private void ClearMaps()
+        private void ResetMaps()
         {
             walkMap.Reset();
             scoreMap.Reset();
@@ -234,29 +228,27 @@ namespace BattleSnake.Services
         {
             if (player.health < 30)
             {
-                FoodScore = 36;
-                FoodScale = 5;
+                FoodScale = IdentityScale + 2;
             }
             else if (player.health < 60)
             {
-                FoodScore = 24;
-                FoodScale = 4;
+                FoodScale = IdentityScale;
             }
             else
             {
-                FoodScore = 12;
-                FoodScale = 3;
+                FoodScale = IdentityScale - 2;
             }
 
             foreach (Snake snake in snakes)
             {
                 if (player.body.Count <= snake.body.Count)
                 {
-                    FoodScore += 12;
                     FoodScale += 1;
                     break;
                 }
             }
+
+            FoodScore = IdentityScore * ScaleFactor[FoodScale] * (FoodScale + 1) / FoodScale;
         }
 
         private void CalculateScoreMap()
@@ -277,27 +269,22 @@ namespace BattleSnake.Services
             switch (walkMap[x, y])
             {
                 case MapType.Space:
-                    ApplyScoreMask(x, y, SpaceScore, SpaceScale);
-                    break;
                 case MapType.Wall:
                     break;
                 case MapType.Head:
                     ApplyScoreMask(x, y, HeadScore, HeadScale);
                     break;
                 case MapType.PlayerHead:
-                    ApplyScoreMask(x, y, PlayerHeadScore, PlayerHeadScale);
                     break;
                 case MapType.WeakHead:
                     ApplyScoreMask(x, y, WeakHeadScore, WeakHeadScale);
                     break;
                 case MapType.Body:
-                    ApplyScoreMask(x, y, BodyScore, BodyScale);
                     break;
                 case MapType.PlayerBody:
                     ApplyScoreMask(x, y, PlayerBodyScore, PlayerBodyScale);
                     break;
                 case MapType.Tail:
-                    ApplyScoreMask(x, y, TailScore, TailScale);
                     break;
                 case MapType.Food:
                     ApplyScoreMask(x, y, FoodScore, FoodScale);
@@ -312,6 +299,10 @@ namespace BattleSnake.Services
             if ((walkMap[x, y] & MapType.UnWalkable) != MapType.None)
             {
                 ApplyUnWalkableScore(x, y);
+            }
+            else
+            {
+                ApplyWalkableScore(x, y);
             }
         }
 
@@ -361,6 +352,11 @@ namespace BattleSnake.Services
             GetDistance(coord + MapMove.Down, scale, distances, length + 1);
             GetDistance(coord + MapMove.Left, scale, distances, length + 1);
             GetDistance(coord + MapMove.Right, scale, distances, length + 1);
+        }
+
+        private void ApplyWalkableScore(int x, int y)
+        {
+            ApplyScoreMask(x, y, WalkableScore, WalkableScale);
         }
 
         private void ApplyUnWalkableScore(int x, int y)
