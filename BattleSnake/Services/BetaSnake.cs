@@ -84,8 +84,8 @@ namespace BattleSnake.Services
             height = request.board.height + 2;
             mapSize = width + height;
 
-            walkMap = new Map<MapType>(width, height);
-            scoreMap = new Map<double>(width, height);
+            walkMap = new Map<MapType>(width, height, MapType.Space);
+            scoreMap = new Map<double>(width, height, 0);
 
             Update(request);
         }
@@ -169,8 +169,8 @@ namespace BattleSnake.Services
 
         private void ResetMaps()
         {
-            walkMap.Clear();
-            scoreMap.Clear();
+            walkMap.Reset();
+            scoreMap.Reset();
         }
 
         private void UpdateWalls()

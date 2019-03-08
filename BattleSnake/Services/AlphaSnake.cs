@@ -11,19 +11,21 @@ namespace BattleSnake.Services
     {
         public string NextMove { get; set; }
 
-        // TODO: add walkabe and unwalkabe types to reduce conditions
         private enum MapType
         {
-            Space,
-            Wall,
-            Head,
-            PlayerHead,
-            WeakHead,
-            Body,
-            PlayerBody,
-            Tail,
-            Food,
-            RaceFood
+            None = 0,
+            Space = 1,
+            Wall = 2,
+            Head = 4,
+            PlayerHead = 8,
+            WeakHead = 16,
+            Body = 32,
+            PlayerBody = 64,
+            Tail = 128,
+            Food = 256,
+            RaceFood = 512,
+            Walkable = Space | Tail | Food | RaceFood,
+            UnWalkable = Wall | Head | PlayerHead | WeakHead | Body | PlayerBody
         }
 
         private static readonly string[] Directions = {
@@ -82,8 +84,8 @@ namespace BattleSnake.Services
             height = request.board.height + 2;
             mapSize = request.board.width * request.board.height;
 
-            walkMap = new Map<MapType>(width, height);
-            scoreMap = new Map<double>(width, height);
+            walkMap = new Map<MapType>(width, height, MapType.Space);
+            scoreMap = new Map<double>(width, height, 0);
         }
 
         public void Update(GameRequest request)
@@ -141,8 +143,8 @@ namespace BattleSnake.Services
 
         private void ClearMaps()
         {
-            walkMap.Clear();
-            scoreMap.Clear();
+            walkMap.Reset();
+            scoreMap.Reset();
         }
 
         private void SetWallsOnMap()
@@ -278,26 +280,21 @@ namespace BattleSnake.Services
                     ApplyScoreMask(x, y, SpaceScore, SpaceScale);
                     break;
                 case MapType.Wall:
-                    ApplyUnWalkableScore(x, y);
                     break;
                 case MapType.Head:
                     ApplyScoreMask(x, y, HeadScore, HeadScale);
-                    ApplyUnWalkableScore(x, y);
                     break;
                 case MapType.PlayerHead:
                     ApplyScoreMask(x, y, PlayerHeadScore, PlayerHeadScale);
-                    ApplyUnWalkableScore(x, y);
                     break;
                 case MapType.WeakHead:
                     ApplyScoreMask(x, y, WeakHeadScore, WeakHeadScale);
                     break;
                 case MapType.Body:
                     ApplyScoreMask(x, y, BodyScore, BodyScale);
-                    ApplyUnWalkableScore(x, y);
                     break;
                 case MapType.PlayerBody:
                     ApplyScoreMask(x, y, PlayerBodyScore, PlayerBodyScale);
-                    ApplyUnWalkableScore(x, y);
                     break;
                 case MapType.Tail:
                     ApplyScoreMask(x, y, TailScore, TailScale);
@@ -310,6 +307,11 @@ namespace BattleSnake.Services
                     break;
                 default:
                     break;
+            }
+
+            if ((walkMap[x, y] & MapType.UnWalkable) != MapType.None)
+            {
+                ApplyUnWalkableScore(x, y);
             }
         }
 
@@ -331,30 +333,11 @@ namespace BattleSnake.Services
             }
         }
 
-        private void ApplyUnWalkableScore(int x, int y)
-        {
-            scoreMap[x, y] = double.NegativeInfinity;
-        }
-
         private void GetDistance(Coord coord, int scale, Dictionary<Coord, int> distances, int length = 1)
         {
-            switch (walkMap[coord])
+            if ((walkMap[coord] & MapType.UnWalkable) != MapType.None)
             {
-                case MapType.Space:
-                    break;
-                case MapType.Wall:
-                case MapType.Head:
-                case MapType.PlayerHead:
-                case MapType.WeakHead:
-                case MapType.Body:
-                case MapType.PlayerBody:
-                case MapType.Tail:
-                    return;
-                case MapType.Food:
-                case MapType.RaceFood:
-                    break;
-                default:
-                    break;
+                return;
             }
 
             if (length > scale)
@@ -380,6 +363,11 @@ namespace BattleSnake.Services
             GetDistance(coord + MapMove.Right, scale, distances, length + 1);
         }
 
+        private void ApplyUnWalkableScore(int x, int y)
+        {
+            scoreMap[x, y] = double.NegativeInfinity;
+        }
+
         private void CalculateLastSpaceScore()
         {
             Coord head = player.body[0];
@@ -402,23 +390,9 @@ namespace BattleSnake.Services
 
         private int GetLastSpace(Coord coord, int length = 0)
         {
-            switch (walkMap[coord])
+            if ((walkMap[coord] & MapType.UnWalkable) != MapType.None)
             {
-                case MapType.Space:
-                    break;
-                case MapType.Wall:
-                case MapType.Head:
-                case MapType.PlayerHead:
-                case MapType.WeakHead:
-                case MapType.Body:
-                case MapType.PlayerBody:
-                    return length;
-                case MapType.Tail:
-                case MapType.Food:
-                case MapType.RaceFood:
-                    break;
-                default:
-                    break;
+                return length;
             }
 
             if (length >= player.body.Count / 2)
