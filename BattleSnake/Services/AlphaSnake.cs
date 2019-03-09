@@ -11,6 +11,7 @@ namespace BattleSnake.Services
     {
         public string NextMove { get; set; }
 
+        // TODO: reduce map types
         private enum MapType
         {
             None = 0,
@@ -36,30 +37,24 @@ namespace BattleSnake.Services
         };
 
         // TODO: modify values by board state
-        private readonly double[] ScaleFactor = { 1, 2, 10 / 3, 5, 37 / 5, 56 / 6 };
+        private static readonly double[] ScaleFactor = { 1, 2, 10 / 3, 5, 37 / 5, 28 / 3, 12, 15 };
 
-        private const int IdentityScale = 3;
-        private const double IdentityScore = 5;
+        private int IdentityScale;
+        private double IdentityScore;
 
-        private const double LastSpaceScore = -200;
+        private double LastSpaceScore;
 
-        private const int WalkableScale = IdentityScale;
-        private const double WalkableScore = IdentityScore;
+        private int WalkableScale;
+        private double WalkableScore;
 
-        private const int HeadScale = 1;
-        private const double HeadScore = LastSpaceScore;
-
-        private const int WeakHeadScale = 1;
-        private const double WeakHeadScore = IdentityScore;
-
-        private const int PlayerBodyScale = 1;
-        private const double PlayerBodyScore = IdentityScore;
+        private int HeadScale;
+        private double HeadScore;
 
         private int FoodScale;
         private double FoodScore;
 
-        private const int RaceFoodScale = 0;
-        private const double RaceFoodScore = LastSpaceScore;
+        private int RaceFoodScale;
+        private double RaceFoodScore;
 
         private int width;
         private int height;
@@ -80,6 +75,23 @@ namespace BattleSnake.Services
 
             walkMap = new Map<MapType>(width, height, MapType.Space);
             scoreMap = new Map<double>(width, height, 0);
+
+            IdentityScale = (int)Math.Ceiling(Math.Sqrt(mapSize) / 2);
+            IdentityScore = IdentityScale + 1;
+
+            LastSpaceScore = -IdentityScore * ScaleFactor[IdentityScale] * 2;
+
+            WalkableScale = IdentityScale;
+            WalkableScore = IdentityScore;
+
+            HeadScale = 2;
+            HeadScore = LastSpaceScore;
+
+            FoodScale = IdentityScale;
+            FoodScore = IdentityScore;
+
+            RaceFoodScale = 1;
+            RaceFoodScore = LastSpaceScore;
         }
 
         public void Update(GameRequest request)
@@ -228,15 +240,19 @@ namespace BattleSnake.Services
         {
             if (player.health < 30)
             {
-                FoodScale = IdentityScale + 2;
+                FoodScale = IdentityScale;
             }
             else if (player.health < 60)
             {
-                FoodScale = IdentityScale;
+                FoodScale = IdentityScale / 2;
+            }
+            else if (player.health < 90)
+            {
+                FoodScale = IdentityScale / 4;
             }
             else
             {
-                FoodScale = IdentityScale - 2;
+                FoodScale = IdentityScale / 8;
             }
 
             foreach (Snake snake in snakes)
@@ -248,7 +264,15 @@ namespace BattleSnake.Services
                 }
             }
 
-            FoodScore = IdentityScore * ScaleFactor[FoodScale] * (FoodScale + 1) / FoodScale;
+            if (FoodScale <= 0)
+            {
+                FoodScale = IdentityScale;
+                FoodScore = IdentityScore;
+            }
+            else
+            {
+                FoodScore = IdentityScore * ScaleFactor[IdentityScale] * (FoodScale + 1) / FoodScale;
+            }
         }
 
         private void CalculateScoreMap()
@@ -277,12 +301,10 @@ namespace BattleSnake.Services
                 case MapType.PlayerHead:
                     break;
                 case MapType.WeakHead:
-                    ApplyScoreMask(x, y, WeakHeadScore, WeakHeadScale);
                     break;
                 case MapType.Body:
                     break;
                 case MapType.PlayerBody:
-                    ApplyScoreMask(x, y, PlayerBodyScore, PlayerBodyScale);
                     break;
                 case MapType.Tail:
                     break;
@@ -378,9 +400,9 @@ namespace BattleSnake.Services
         {
             int space = GetLastSpace(coord);
 
-            if (space < player.body.Count / 2)
+            if (space < player.body.Count)
             {
-                scoreMap[coord] += LastSpaceScore * (1 - ((double)space / (player.body.Count / 2)));
+                scoreMap[coord] += LastSpaceScore * (1 - ((double)space / player.body.Count));
             }
         }
 
@@ -391,13 +413,22 @@ namespace BattleSnake.Services
                 return length;
             }
 
-            if (length >= player.body.Count / 2)
+            if (walkMap[coord] == MapType.Tail)
+            {
+                return player.body.Count;
+            }
+
+            if (length >= player.body.Count)
             {
                 return length;
             }
 
             MapType prev = walkMap[coord];
             walkMap[coord] = MapType.Body;
+
+            Coord tail = player.body.TakeLast(length + 2).ToArray().First();
+            MapType prevTail = walkMap[tail];
+            walkMap[tail] = MapType.Space;
 
             List<int> spaces = new List<int>
             {
@@ -408,6 +439,7 @@ namespace BattleSnake.Services
             };
 
             walkMap[coord] = prev;
+            walkMap[tail] = prevTail;
 
             return spaces.Max();
         }
